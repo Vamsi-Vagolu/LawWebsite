@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="text-white font-bold text-lg mb-4">{FIRM_NAME}</h3>
-            <p>Trusted platform for law notes and quizzes.</p>
+            <p>Trying to present legal language in simple words.</p>
           </div>
           <div>
             <h3 className="text-white font-bold text-lg mb-4">Quick Links</h3>
@@ -26,7 +26,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t border-gray-700 pt-4 text-center text-sm">
-          &copy; {new Date().getFullYear()} LawFirmEdu. All rights reserved.
+          &copy; {new Date().getFullYear()} {FIRM_NAME}. All rights reserved.
         </div>
       </div>
     </footer>
