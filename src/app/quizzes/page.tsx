@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // Sample quizzes data
 const quizzesData = [
@@ -13,6 +14,14 @@ const quizzesData = [
 
 export default function QuizzesPage() {
   const [search, setSearch] = useState("");
+  const router = useRouter();
+
+  // Protect page: redirect if not logged in
+  useEffect(() => {
+    if (localStorage.getItem("loggedIn") !== "true") {
+      router.push("/login");
+    }
+  }, [router]);
 
   // Filter quizzes based on search input
   const filteredQuizzes = quizzesData.filter((quiz) =>

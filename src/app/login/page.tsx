@@ -1,15 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FIRM_NAME } from "../../config";
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Normally, you would validate credentials here
+    localStorage.setItem("loggedIn", "true");
+
+    // Dispatch event to notify Navbar
+    window.dispatchEvent(new Event("loginStatusChanged"));
+
+    router.push("/notes"); // redirect after login
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md px-6 py-10 bg-white rounded-xl shadow-lg">
         <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">{FIRM_NAME} Login</h1>
 
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleLogin}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
@@ -34,7 +48,10 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <button className="w-full px-4 py-2 bg-blue-700 text-white font-medium rounded hover:bg-blue-800 transition">
+          <button
+            type="submit"
+            className="w-full px-4 py-2 bg-blue-700 text-white font-medium rounded hover:bg-blue-800 transition"
+          >
             Login
           </button>
         </form>

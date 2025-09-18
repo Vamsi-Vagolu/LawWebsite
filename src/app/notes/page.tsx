@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 // Sample notes data
@@ -13,7 +14,21 @@ const notesData = [
 ];
 
 export default function NotesPage() {
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    // Check if the user is "logged in" in localStorage
+    const token = localStorage.getItem("loggedIn");
+    if (!token) {
+      router.push("/login"); // redirect to login if not logged in
+    } else {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  if (!isLoggedIn) return null; // Prevent page flash before redirect
 
   // Filter notes based on search
   const filteredNotes = notesData.filter((note) =>
