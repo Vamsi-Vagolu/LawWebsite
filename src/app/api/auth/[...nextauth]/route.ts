@@ -1,3 +1,4 @@
+// /app/api/auth/[...nextauth]/route.ts
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +7,10 @@ import bcrypt from "bcryptjs";
 export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  jwt: {
+    secret: process.env.NEXTAUTH_SECRET,
   },
   providers: [
     CredentialsProvider({
@@ -26,9 +31,8 @@ export const authOptions: AuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        // ✅ Return user with string id
         return {
-          id: user.id, // already string
+          id: user.id,
           name: user.name ?? null,
           email: user.email ?? null,
         };
@@ -37,18 +41,31 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id; // string
+      if (user) token.id = user.id; // Add user id to JWT
       return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = token.id as string; // string
+      if (session.user) session.user.id = token.id as string; // Persist user id in session
       return session;
     },
   },
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/auth/signin", // custom signin page
+  },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production", // false on localhost
+      },
+    },
   },
 };
 
 const handler = NextAuth(authOptions);
+
+// App Router requires exporting GET and POST separately
 export { handler as GET, handler as POST };

@@ -9,7 +9,7 @@ interface Note {
   title: string;
   description: string;
   category: string;
-  pdfFile: string; // link to pdf inside /public
+  pdfFile: string;
 }
 
 const notesData: Note[] = [
@@ -27,19 +27,21 @@ export default function NoteDetailPage() {
   const { data: session, status } = useSession();
   const [note, setNote] = useState<Note | null>(null);
 
+  // ✅ Redirect if unauthenticated
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push("/auth/signin");
     }
   }, [status, router]);
 
+  // ✅ Find the note by slug
   useEffect(() => {
     if (noteSlug) {
       const found = notesData.find(
         (n) => n.title.toLowerCase().replace(/\s+/g, "-") === noteSlug
       );
       if (!found) {
-        router.push("/dashboard/notes");
+        router.push("/dashboard/notes"); // fallback if note not found
       } else {
         setNote(found);
       }
