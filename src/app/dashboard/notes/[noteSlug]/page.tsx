@@ -9,15 +9,16 @@ interface Note {
   title: string;
   description: string;
   category: string;
-  content: string;
+  pdfFile: string; // link to pdf inside /public
 }
 
 const notesData: Note[] = [
-  { id: 1, title: "Constitutional Law", description: "Key concepts, case studies, and summaries.", category: "Constitutional", content: "Full Constitutional Law notes here..." },
-  { id: 2, title: "Criminal Law", description: "Important acts, sections, and landmark judgments.", category: "Criminal", content: "Full Criminal Law notes here..." },
-  { id: 3, title: "Contract Law", description: "Essentials of contracts and case examples.", category: "Contract", content: "Full Contract Law notes here..." },
-  { id: 4, title: "Civil Procedure", description: "Rules, case examples, and revisions.", category: "Civil", content: "Full Civil Procedure notes here..." },
-  { id: 5, title: "Property Law", description: "Ownership, transfer, and key acts.", category: "Property", content: "Full Property Law notes here..." },
+  { id: 1, title: "Constitutional Law", description: "Key concepts, case studies, and summaries.", category: "Constitutional", pdfFile: "/pdfs/constitutional-law.pdf" },
+  { id: 2, title: "Criminal Law", description: "Important acts, sections, and landmark judgments.", category: "Criminal", pdfFile: "/pdfs/criminal-law.pdf" },
+  { id: 3, title: "Contract Law", description: "Essentials of contracts and case examples.", category: "Contract", pdfFile: "/pdfs/contract-law.pdf" },
+  { id: 4, title: "Civil Procedure", description: "Rules, case examples, and revisions.", category: "Civil", pdfFile: "/pdfs/civil-procedure.pdf" },
+  { id: 5, title: "Property Law", description: "Ownership, transfer, and key acts.", category: "Property", pdfFile: "/pdfs/property-law.pdf" },
+  { id: 6, title: "Constitutional Law 2", description: "Rights of arrested person.", category: "Constitutional", pdfFile: "/pdfs/rights-of-arrested-person-notes.pdf"},
 ];
 
 export default function NoteDetailPage() {
@@ -50,17 +51,44 @@ export default function NoteDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-4xl font-bold mb-4">{note.title}</h1>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <h1 className="text-4xl font-bold mb-2">{note.title}</h1>
       <span className="text-sm px-2 py-1 bg-blue-200 text-blue-800 rounded-full">{note.category}</span>
-      <p className="text-gray-700 mt-4">{note.content}</p>
+      <p className="text-gray-600 mt-2 mb-6">{note.description}</p>
 
-      <button
-        onClick={() => router.push("/dashboard/notes")}
-        className="mt-6 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-      >
-        ← Back to Notes
-      </button>
+      {/* PDF Viewer */}
+      <div className="w-full h-[600px] border rounded-lg shadow mb-6">
+        <iframe
+          src={note.pdfFile}
+          className="w-full h-full"
+          title={note.title}
+        />
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-4">
+        <a
+          href={note.pdfFile}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+        >
+          Open in New Tab
+        </a>
+        <a
+          href={note.pdfFile}
+          download
+          className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+        >
+          Download PDF
+        </a>
+        <button
+          onClick={() => router.push("/dashboard/notes")}
+          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+        >
+          ← Back to Notes
+        </button>
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const notesData = [
   { id: 3, title: "Contract Law", description: "Essentials of contracts and case examples.", category: "Contract" },
   { id: 4, title: "Civil Procedure", description: "Rules, case examples, and revisions.", category: "Civil" },
   { id: 5, title: "Property Law", description: "Ownership, transfer, and key acts.", category: "Property" },
+  { id: 6, title: "Constitutional Law 2", description: "Rights of arrested person.", category: "Constitutional" },
 ];
 
 export default function NotesPage() {
