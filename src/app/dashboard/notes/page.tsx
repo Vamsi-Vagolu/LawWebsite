@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // Sample notes data
 const notesData = [
@@ -14,23 +15,29 @@ const notesData = [
 ];
 
 export default function NotesPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    // Check if the user is "logged in" in localStorage
-    const token = localStorage.getItem("loggedIn");
-    if (!token) {
-      router.push("/login"); // redirect to login if not logged in
-    } else {
-      setIsLoggedIn(true);
-    }
-  }, []);
+  if (status === "loading") return <p className="p-8 text-center">Loading...</p>;
 
-  if (!isLoggedIn) return null; // Prevent page flash before redirect
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg w-96 text-center transform transition duration-500 ease-out scale-95 opacity-0 animate-scale-fade-in">
+          <h2 className="text-2xl font-bold mb-4">Welcome Back!</h2>
+          <p className="text-gray-600 mb-6">You must be logged in to access the law notes.</p>
+          <button
+            className="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
+            onClick={() => router.push("/login")}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  // Filter notes based on search
   const filteredNotes = notesData.filter((note) =>
     note.title.toLowerCase().includes(search.toLowerCase())
   );
@@ -42,7 +49,6 @@ export default function NotesPage() {
         Browse detailed law notes categorized for easy learning and revision.
       </p>
 
-      {/* Search Bar */}
       <div className="mb-8">
         <input
           type="text"
@@ -53,7 +59,6 @@ export default function NotesPage() {
         />
       </div>
 
-      {/* Notes Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredNotes.length === 0 ? (
           <p className="col-span-full text-gray-500 text-center">No notes found.</p>
@@ -69,7 +74,7 @@ export default function NotesPage() {
               </div>
               <p className="text-gray-700 mb-4">{note.description}</p>
               <Link
-                href={`/notes/${note.title.toLowerCase().replace(/\s+/g, "-")}`}
+                href={`/dashboard/notes/${note.title.toLowerCase().replace(/\s+/g, "-")}`}
                 className="text-blue-700 font-medium hover:underline"
               >
                 View Note

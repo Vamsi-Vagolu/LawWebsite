@@ -1,28 +1,46 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import { FIRM_NAME } from "../config";
 
+type AppRoutes =
+  | "/"
+  | "/dashboard"
+  | "/dashboard/notes"
+  | "/dashboard/quizzes"
+  | "/blog"
+  | "/contact"
+  | "/login"
+  | "/signup";
+
 export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Check login status on mount
-  useEffect(() => {
-    setIsLoggedIn(localStorage.getItem("loggedIn") === "true");
-  }, []);
+  const isLoggedIn = !!session?.user;
 
-  const handleLogout = () => {
-    localStorage.removeItem("loggedIn");
-    setIsLoggedIn(false);
-    router.push("/login");
+  const navLinks: { name: string; href: AppRoutes }[] = [
+    { name: "Home", href: "/" },
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "Notes", href: "/dashboard/notes" },
+    { name: "Quizzes", href: "/dashboard/quizzes" },
+    { name: "Blog", href: "/blog" },
+    { name: "Contact", href: "/contact" },
+  ];
+
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/" });
     setMenuOpen(false);
   };
 
-  // Close mobile menu after clicking a link
   const handleLinkClick = () => setMenuOpen(false);
 
   return (
@@ -36,11 +54,24 @@ export default function Navbar() {
 
           {/* Desktop Links */}
           <div className="hidden md:flex space-x-6 items-center">
-            <Link href="/" className="text-gray-700 hover:text-blue-700">Home</Link>
-            <Link href="/notes" className="text-gray-700 hover:text-blue-700">Notes</Link>
-            <Link href="/quizzes" className="text-gray-700 hover:text-blue-700">Quizzes</Link>
-            <Link href="/blog" className="text-gray-700 hover:text-blue-700">Blog</Link>
-            <Link href="/contact" className="text-gray-700 hover:text-blue-700">Contact</Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`relative font-medium px-1 py-1 ${
+                  isActive(link.href)
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-700"
+                }`}
+              >
+                {link.name}
+                <span
+                  className={`absolute left-0 bottom-0 h-[2px] bg-blue-600 transition-all duration-300 ${
+                    isActive(link.href) ? "w-full" : "w-0"
+                  }`}
+                ></span>
+              </Link>
+            ))}
 
             {isLoggedIn ? (
               <button
@@ -74,12 +105,32 @@ export default function Navbar() {
               className="text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-700 rounded"
             >
               {menuOpen ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               )}
             </button>
@@ -91,16 +142,25 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden bg-white shadow-md">
           <div className="px-4 pt-2 pb-4 space-y-2">
-            <Link href="/" onClick={handleLinkClick} className="block text-gray-700 hover:text-blue-700">Home</Link>
-            <Link href="/notes" onClick={handleLinkClick} className="block text-gray-700 hover:text-blue-700">Notes</Link>
-            <Link href="/quizzes" onClick={handleLinkClick} className="block text-gray-700 hover:text-blue-700">Quizzes</Link>
-            <Link href="/blog" onClick={handleLinkClick} className="block text-gray-700 hover:text-blue-700">Blog</Link>
-            <Link href="/contact" onClick={handleLinkClick} className="block text-gray-700 hover:text-blue-700">Contact</Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={handleLinkClick}
+                className={`block font-medium px-2 py-1 rounded ${
+                  isActive(link.href)
+                    ? "text-blue-600 bg-blue-100"
+                    : "text-gray-700 hover:text-blue-700 hover:bg-gray-50"
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
 
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
-                className="block mx-auto text-white bg-red-600 px-6 py-2 rounded hover:bg-red-700 transition"
+                className="block mx-auto mt-2 text-white bg-red-600 px-6 py-2 rounded hover:bg-red-700 transition"
               >
                 Logout
               </button>
@@ -109,14 +169,14 @@ export default function Navbar() {
                 <Link
                   href="/login"
                   onClick={handleLinkClick}
-                  className="block mx-auto text-white bg-blue-700 px-6 py-2 rounded hover:bg-blue-800 transition w-max"
+                  className="block mx-auto mt-2 text-white bg-blue-700 px-6 py-2 rounded hover:bg-blue-800 transition w-max"
                 >
                   Login
                 </Link>
                 <Link
                   href="/signup"
                   onClick={handleLinkClick}
-                  className="block mx-auto text-white bg-green-600 px-6 py-2 rounded hover:bg-green-700 transition w-max mt-2"
+                  className="block mx-auto mt-2 text-white bg-green-600 px-6 py-2 rounded hover:bg-green-700 transition w-max"
                 >
                   Sign Up
                 </Link>

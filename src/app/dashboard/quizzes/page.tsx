@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 // Sample quizzes data
@@ -13,17 +14,29 @@ const quizzesData = [
 ];
 
 export default function QuizzesPage() {
+  const { data: session, status } = useSession();
   const [search, setSearch] = useState("");
   const router = useRouter();
 
-  // Protect page: redirect if not logged in
-  useEffect(() => {
-    if (localStorage.getItem("loggedIn") !== "true") {
-      router.push("/login");
-    }
-  }, [router]);
+  if (status === "loading") return <p className="p-8 text-center">Loading...</p>;
 
-  // Filter quizzes based on search input
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg w-96 text-center transform transition duration-500 ease-out scale-95 opacity-0 animate-scale-fade-in">
+          <h2 className="text-2xl font-bold mb-4">Welcome Back!</h2>
+          <p className="text-gray-600 mb-6">You must be logged in to access quizzes.</p>
+          <button
+            className="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
+            onClick={() => router.push("/login")}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const filteredQuizzes = quizzesData.filter((quiz) =>
     quiz.title.toLowerCase().includes(search.toLowerCase())
   );
@@ -35,7 +48,6 @@ export default function QuizzesPage() {
         Test your knowledge with interactive quizzes across different law subjects.
       </p>
 
-      {/* Search Bar */}
       <div className="mb-8">
         <input
           type="text"
@@ -46,7 +58,6 @@ export default function QuizzesPage() {
         />
       </div>
 
-      {/* Quizzes Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredQuizzes.length === 0 ? (
           <p className="col-span-full text-gray-500 text-center">No quizzes found.</p>
@@ -61,7 +72,14 @@ export default function QuizzesPage() {
                 <span className="text-sm px-2 py-1 bg-blue-200 text-blue-800 rounded-full">{quiz.category}</span>
               </div>
               <p className="text-gray-700 mb-4">{quiz.description}</p>
-              <button className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition">
+              <button
+                onClick={() =>
+                  router.push(
+                    `/dashboard/quizzes/${quiz.title.toLowerCase().replace(/\s+/g, "-")}`
+                  )
+                }
+                className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition"
+              >
                 Start Quiz
               </button>
             </div>
