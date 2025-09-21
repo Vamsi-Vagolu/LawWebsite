@@ -14,17 +14,21 @@ type AppRoutes =
   | "/blog"
   | "/contact"
   | "/login"
-  | "/signup";
+  | "/signup"
+  | "/dashboard/admin"; // admin panel route
 
 export default function Navbar() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isLoggedIn = !!session?.user;
+  const userRole = session?.user?.role as "OWNER" | "ADMIN" | "USER" | undefined;
 
+  // Base nav links
   const navLinks: { name: string; href: AppRoutes }[] = [
+    {name: "Admin Panel", href: "/dashboard/admin"},
     { name: "Home", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Notes", href: "/dashboard/notes" },
@@ -32,6 +36,11 @@ export default function Navbar() {
     { name: "Blog", href: "/blog" },
     { name: "Contact", href: "/contact" },
   ];
+
+  // Add Admin Panel link only for OWNER or ADMIN
+  if (isLoggedIn && (userRole === "OWNER" || userRole === "ADMIN")) {
+    navLinks.push({ name: "Admin Panel", href: "/dashboard/admin" });
+  }
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");

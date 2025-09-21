@@ -1,17 +1,13 @@
-// /app/api/auth/[...nextauth]/route.ts
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-// Export authOptions so it can be imported elsewhere (e.g., admin route)
 export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  jwt: {
-    secret: process.env.NEXTAUTH_SECRET,
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 24 * 60 * 60,   // refresh JWT every 24 hours
   },
   providers: [
     CredentialsProvider({
@@ -23,6 +19,7 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        // ✅ Fetch user with role, no need for role: true in select
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
@@ -32,40 +29,42 @@ export const authOptions: AuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
+        // ✅ Return typed user object
         return {
           id: user.id,
           name: user.name ?? null,
           email: user.email ?? null,
+          role: user.role, // enum: "OWNER" | "ADMIN" | "USER"
         };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id; // Add user id to JWT
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.name = user.name ?? null;
+        token.email = user.email ?? null;
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = token.id as string; // Persist user id in session
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as "OWNER" | "ADMIN" | "USER";
+        session.user.name = token.name as string | null;
+        session.user.email = token.email as string | null;
+      }
       return session;
     },
   },
   pages: {
-    signIn: "/auth/signin", // custom sign-in page
+    signIn: "/auth/signin",
   },
-  cookies: {
-    sessionToken: {
-      name: "next-auth.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production", // false on localhost
-      },
-    },
-  },
+  debug: false,
 };
 
-// App Router requires exporting GET and POST separately
 const handler = NextAuth(authOptions);
+
 export { handler as GET, handler as POST };

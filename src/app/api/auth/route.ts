@@ -1,3 +1,4 @@
+// /app/api/auth/[...nextauth]/route.ts
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
@@ -19,8 +20,16 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        // ✅ Include 'role' in select
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            password: true,
+            role: true, // ✅ include role
+          },
         });
 
         if (!user || !user.password) return null;
@@ -32,6 +41,7 @@ export const authOptions: AuthOptions = {
           id: user.id,
           name: user.name ?? null,
           email: user.email ?? null,
+          role: user.role, // ✅ role included
         };
       },
     }),
@@ -41,6 +51,7 @@ export const authOptions: AuthOptions = {
       // Store user info in the token on login
       if (user) {
         token.id = user.id;
+        token.role = user.role;
         token.name = user.name ?? null;
         token.email = user.email ?? null;
       }
@@ -50,6 +61,7 @@ export const authOptions: AuthOptions = {
       // Persist JWT info in session
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.role = token.role as "OWNER" | "ADMIN" | "USER";
         session.user.name = token.name as string | null;
         session.user.email = token.email as string | null;
       }
@@ -59,7 +71,7 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: "/auth/signin",
   },
-  debug: false, // set true for debugging auth issues
+  debug: false,
 };
 
 const handler = NextAuth(authOptions);
