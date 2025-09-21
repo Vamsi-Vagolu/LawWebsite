@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -7,13 +7,22 @@ async function main() {
   // 🔑 Hash password
   const passwordHash = await bcrypt.hash("Test@1234", 10);
 
-  // 🧑‍🤝‍🧑 Create users
-  const users = await Promise.all([
+  // 🧑‍🤝‍🧑 Create users with roles
+  const [owner, admin, user] = await Promise.all([
     prisma.user.create({
       data: {
-        name: "Vamsi",
-        email: "vamsi@example.com",
+        name: "Vamsi Vagolu",
+        email: "v.vamsi3666@gmail.com",
         password: passwordHash,
+        role: Role.OWNER,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Admin User",
+        email: "admin@example.com",
+        password: passwordHash,
+        role: Role.ADMIN,
       },
     }),
     prisma.user.create({
@@ -21,11 +30,12 @@ async function main() {
         name: "Test User",
         email: "test@example.com",
         password: passwordHash,
+        role: Role.USER,
       },
     }),
   ]);
 
-  console.log("✅ Created users:", users.map(u => u.email));
+  console.log("✅ Created users:", [owner.email, admin.email, user.email]);
 
   // 📚 Seed Notes
   const notesData = [
@@ -52,47 +62,48 @@ async function main() {
     },
   ];
 
-  for (const user of users) {
-    for (const note of notesData) {
-      // 📝 Create note
-      const createdNote = await prisma.note.create({
-        data: {
-          ...note,
+  // 📝 Assign notes only to Admin and Owner (example: normal User can’t add notes)
+  for (const note of notesData) {
+    const createdNote = await prisma.note.create({
+      data: {
+        ...note,
+        userId: admin.id, // assign ADMIN as note creator
+      },
+    });
+
+    // 📝 Create quizzes for each note
+    await prisma.quiz.createMany({
+      data: [
+        {
+          question: `What is one key point in ${note.title}?`,
+          answer: "Refer to the note content.",
+          userId: admin.id,
+          noteId: createdNote.id,
         },
-      });
+        {
+          question: `Which category is ${note.title} in?`,
+          answer: note.category ?? "General",
+          userId: admin.id,
+          noteId: createdNote.id,
+        },
+      ],
+    });
 
-      // 📝 Create quizzes for each note
-      await prisma.quiz.createMany({
-        data: [
-          {
-            question: `What is one key point in ${note.title}?`,
-            answer: "Refer to the note content.",
-            userId: user.id,
-            noteId: createdNote.id,
-          },
-          {
-            question: `Which category is ${note.title} in?`,
-            answer: note.category,
-            userId: user.id,
-            noteId: createdNote.id,
-          },
-        ],
-      });
-
-      // ⭐ Mark one note as favorite
-      if (note.title === "Constitutional Law") {
-        await prisma.userFavoriteNote.create({
-          data: {
-            userId: user.id,
-            noteId: createdNote.id,
-          },
-        });
-      }
-
-      // ⏱️ Simulate recently viewed
-      await prisma.viewedNote.create({
+    // ⭐ Mark one note as favorite for test user
+    if (note.title === "Constitutional Law") {
+      await prisma.userFavoriteNote.create({
         data: {
           userId: user.id,
+          noteId: createdNote.id,
+        },
+      });
+    }
+
+    // ⏱️ Simulate recently viewed for all users
+    for (const u of [owner, admin, user]) {
+      await prisma.viewedNote.create({
+        data: {
+          userId: u.id,
           noteId: createdNote.id,
         },
       });
@@ -104,7 +115,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Seed failed:", e);
     process.exit(1);
   })
   .finally(async () => {

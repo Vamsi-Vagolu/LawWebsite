@@ -68,7 +68,7 @@ export default function NotesPage() {
         Law Notes
       </h1>
       <p className="text-gray-700 mb-8">
-        Browse detailed law notes fetched from the API.
+        Made with Love.
       </p>
 
       {/* Search */}
