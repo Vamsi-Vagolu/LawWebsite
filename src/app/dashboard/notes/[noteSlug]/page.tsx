@@ -21,13 +21,6 @@ export default function NoteDetailPage() {
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Redirect if unauthenticated
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/signin");
-    }
-  }, [status, router]);
-
   // Fetch note by slug from API
   useEffect(() => {
     if (!noteSlug) return;
@@ -55,8 +48,36 @@ export default function NoteDetailPage() {
     fetchNote();
   }, [noteSlug, router]);
 
-  if (status === "loading" || loading || !session) {
+  if (status === "loading" || loading) {
     return <p className="p-8 text-center">Loading...</p>;
+  }
+
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh] bg-gray-50">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Restricted</h2>
+          <p className="text-gray-700 mb-6">
+            Please login to view this page.
+          </p>
+          <button
+            className="w-full px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition"
+            onClick={() => router.push("/login")}
+          >
+            Login
+          </button>
+          <div className="mt-4 text-sm text-gray-500">
+            Don&apos;t have an account?{" "}
+            <button
+              className="text-blue-700 underline"
+              onClick={() => router.push("/signup")}
+            >
+              Sign up
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!note) return null;
