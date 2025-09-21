@@ -4,10 +4,10 @@ import slugify from "slugify";
 
 // PUT edit note
 export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  req: Request,
+  context: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = context.params;
   if (!id) {
     return NextResponse.json({ error: "Note id is required" }, { status: 400 });
   }
@@ -50,9 +50,9 @@ export async function PUT(
 // DELETE note
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = context.params;
   if (!id) {
     return NextResponse.json({ error: "Note id is required" }, { status: 400 });
   }
