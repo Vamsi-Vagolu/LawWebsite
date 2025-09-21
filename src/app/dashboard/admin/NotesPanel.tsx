@@ -1,30 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
+import { FileUpload } from "./FileUpload";
 
 interface Note {
   id: string;
   title: string;
-  description: string;
-  category: string;
+  description?: string;
+  category?: string;
   pdfFile: string;
   slug: string;
 }
 
 export default function NotesPanel() {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [search, setSearch] = useState<string>("");
+
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    category: string;
+    pdfFile: File | null;
+  }>({
+    title: "",
+    description: "",
+    category: "",
+    pdfFile: null,
+  });
 
   // Fetch all notes
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const res = await axios.get<Note[]>("/api/notes");
+      const res = await axios.get<Note[]>("/api/admin/notes");
       setNotes(res.data);
     } catch (err) {
       console.error("Failed to fetch notes:", err);
+      alert("Failed to fetch notes.");
     } finally {
       setLoading(false);
     }
@@ -34,18 +51,82 @@ export default function NotesPanel() {
     fetchNotes();
   }, []);
 
-  // Delete note
+  const openModal = (note?: Note) => {
+    if (note) {
+      setEditingNote(note);
+      setFormData({
+        title: note.title,
+        description: note.description || "",
+        category: note.category || "",
+        pdfFile: null,
+      });
+    } else {
+      setEditingNote(null);
+      setFormData({ title: "", description: "", category: "", pdfFile: null });
+    }
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingNote(null);
+    setFormData({ title: "", description: "", category: "", pdfFile: null });
+  };
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    if (files) setFormData((prev) => ({ ...prev, pdfFile: files[0] }));
+    else setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (file: File | null) => {
+    setFormData((prev) => ({ ...prev, pdfFile: file }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      const form = new FormData();
+      form.append("title", formData.title);
+      form.append("description", formData.description);
+      form.append("category", formData.category);
+      if (formData.pdfFile) form.append("pdfFile", formData.pdfFile);
+
+      if (editingNote) {
+        const res = await axios.put<Note>(
+          `/api/admin/notes/${editingNote.id}`,
+          form,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        setNotes((prev) =>
+          prev.map((n) => (n.id === editingNote.id ? res.data : n))
+        );
+      } else {
+        const res = await axios.post<Note>("/api/admin/notes", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setNotes((prev) => [res.data, ...prev]);
+      }
+
+      closeModal();
+    } catch (err) {
+      console.error("Failed to save note:", err);
+      alert("Failed to save note. Make sure PDF is provided.");
+    }
+  };
+
   const deleteNote = async (id: string) => {
     if (!confirm("Are you sure you want to delete this note?")) return;
+
     try {
       await axios.delete(`/api/admin/notes/${id}`);
       setNotes((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
       console.error("Failed to delete note:", err);
+      alert("Failed to delete note.");
     }
   };
 
-  // Filtered notes for search
   const filteredNotes = notes.filter((note) =>
     note.title.toLowerCase().includes(search.toLowerCase())
   );
@@ -62,7 +143,12 @@ export default function NotesPanel() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        {/* Later we can add "Add Note" button here */}
+        <button
+          onClick={() => openModal()}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Add Note
+        </button>
       </div>
 
       {loading ? (
@@ -85,7 +171,7 @@ export default function NotesPanel() {
                 <td className="p-2">{note.category}</td>
                 <td className="p-2 flex gap-2 justify-center">
                   <button
-                    onClick={() => alert("Edit feature coming soon")}
+                    onClick={() => openModal(note)}
                     className="px-2 py-1 bg-yellow-400 text-white rounded"
                   >
                     Edit
@@ -101,6 +187,68 @@ export default function NotesPanel() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded w-1/3">
+            <h3 className="text-xl font-bold mb-4">
+              {editingNote ? "Edit Note" : "Add Note"}
+            </h3>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col">
+                <label className="font-semibold">Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  required
+                  className="border px-2 py-1 rounded"
+                  value={formData.title}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="font-semibold">Description</label>
+                <textarea
+                  name="description"
+                  className="border px-2 py-1 rounded"
+                  value={formData.description}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="font-semibold">Category</label>
+                <input
+                  type="text"
+                  name="category"
+                  className="border px-2 py-1 rounded"
+                  value={formData.category}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <FileUpload file={formData.pdfFile} setFile={(f) => setFormData(prev => ({ ...prev, pdfFile: f }))} />
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 bg-gray-400 text-white rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                >
+                  {editingNote ? "Update" : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
