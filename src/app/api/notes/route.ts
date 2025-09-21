@@ -1,8 +1,6 @@
 // app/api/notes/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma"; // Use consistent import
 
 export async function GET() {
   try {
