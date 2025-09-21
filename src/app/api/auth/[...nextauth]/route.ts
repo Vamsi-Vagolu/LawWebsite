@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+// Export authOptions so it can be imported elsewhere (e.g., admin route)
 export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt",
@@ -50,7 +51,7 @@ export const authOptions: AuthOptions = {
     },
   },
   pages: {
-    signIn: "/auth/signin", // custom signin page
+    signIn: "/auth/signin", // custom sign-in page
   },
   cookies: {
     sessionToken: {
@@ -65,7 +66,6 @@ export const authOptions: AuthOptions = {
   },
 };
 
-const handler = NextAuth(authOptions);
-
 // App Router requires exporting GET and POST separately
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
