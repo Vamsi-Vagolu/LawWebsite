@@ -15,7 +15,8 @@ type AppRoutes =
   | "/contact"
   | "/login"
   | "/signup"
-  | "/dashboard/admin"; // admin panel route
+  | "/dashboard/admin" // admin panel route
+  | "/dashboard/owner"; // owner panel route
 
 type NavLink = { name: string; href: AppRoutes };
 
@@ -41,6 +42,11 @@ export default function Navbar() {
   // Insert Admin Panel before Dashboard for OWNER or ADMIN
   if (isLoggedIn && (userRole === "OWNER" || userRole === "ADMIN")) {
     navLinks.splice(1, 0, { name: "Admin Panel", href: "/dashboard/admin" });
+  }
+
+  // Add Owner Panel link only for OWNER
+  if (userRole === "OWNER") {
+    navLinks.push({ name: "Owner Panel", href: "/dashboard/owner" });
   }
 
   const isActive = (href: string) =>

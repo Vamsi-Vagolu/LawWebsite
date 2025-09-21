@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import axios from "axios";
 
 const notesData = [
 	{
@@ -35,19 +36,38 @@ const notesData = [
 		category: "Property",
 		description: "Ownership, transfer, and key acts.",
 	},
-	{
-		id: 6,
-		title: "Constitutional Law 2",
-		category: "Constitutional",
-		description: "Rights of arrested person.",
-	},
 ];
+
+interface Note {
+	id: string | number;
+	title: string;
+	category: string;
+	description?: string;
+	slug?: string;
+}
 
 export default function DashboardPage() {
 	const { data: session, status } = useSession();
 	const [search, setSearch] = useState("");
+	const [dbNotes, setDbNotes] = useState<Note[]>([]);
+	const [loading, setLoading] = useState(true);
 
-	if (status === "loading") {
+	useEffect(() => {
+		async function fetchNotes() {
+			try {
+				const res = await axios.get("/api/notes");
+				setDbNotes(res.data as Note[]);
+			} catch (err) {
+				console.error("Failed to fetch notes:", err);
+				setDbNotes([]);
+			} finally {
+				setLoading(false);
+			}
+		}
+		fetchNotes();
+	}, []);
+
+	if (status === "loading" || loading) {
 		return (
 			<div className="flex items-center justify-center min-h-[60vh]">
 				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
@@ -82,11 +102,24 @@ export default function DashboardPage() {
 		);
 	}
 
-	const filteredNotes = notesData.filter((note) =>
+	// Combine hardcoded and fetched notes
+	const allNotes: Note[] = [
+		...notesData,
+		...dbNotes.map((note) => ({
+			...note,
+			id: note.id,
+			title: note.title,
+			category: note.category,
+			description: note.description,
+			slug: note.slug,
+		})),
+	];
+
+	const filteredNotes = allNotes.filter((note) =>
 		note.title.toLowerCase().includes(search.toLowerCase())
 	);
 
-	const categories = Array.from(new Set(notesData.map((n) => n.category)));
+	const categories = Array.from(new Set(allNotes.map((n) => n.category)));
 
 	return (
 		<div className="max-w-7xl mx-auto px-4 py-16">
@@ -102,7 +135,7 @@ export default function DashboardPage() {
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
 				<div className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow">
 					<h2 className="text-xl font-semibold">Total Notes</h2>
-					<p className="text-3xl font-bold mt-2">{notesData.length}</p>
+					<p className="text-3xl font-bold mt-2">{allNotes.length}</p>
 				</div>
 				<div className="p-6 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow">
 					<h2 className="text-xl font-semibold">Categories</h2>
@@ -111,7 +144,7 @@ export default function DashboardPage() {
 				<div className="p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg shadow">
 					<h2 className="text-xl font-semibold">Recent Note</h2>
 					<p className="text-2xl mt-2">
-						{notesData[notesData.length - 1].title}
+						{allNotes[allNotes.length - 1]?.title}
 					</p>
 				</div>
 			</div>
@@ -147,9 +180,13 @@ export default function DashboardPage() {
 							</div>
 							<p className="text-gray-700 mb-4">{note.description}</p>
 							<Link
-								href={`/dashboard/notes/${note.title
-									.toLowerCase()
-									.replace(/\s+/g, "-")}`}
+								href={
+									note.slug
+										? `/dashboard/notes/${note.slug}`
+										: `/dashboard/notes/${note.title
+												.toLowerCase()
+												.replace(/\s+/g, "-")}`
+								}
 								className="text-blue-700 font-medium hover:underline"
 							>
 								View Note

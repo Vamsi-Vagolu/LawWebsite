@@ -90,9 +90,9 @@ export default function NoteDetailPage() {
 
       {/* PDF Viewer */}
       {note.pdfFile && (
-        <div className="w-full h-[600px] border rounded-lg shadow mb-6">
+        <div className="w-full h-[900px] border rounded-lg shadow mb-6">
           <iframe
-            src={note.pdfFile} // This points to /pdfs/... now
+            src={note.pdfFile}
             className="w-full h-full"
             title={note.title}
           />
@@ -125,6 +125,12 @@ export default function NoteDetailPage() {
           className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
         >
           ← Back to Notes
+        </button>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+        >
+          ← Back to Dashboard
         </button>
       </div>
     </div>
