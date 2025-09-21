@@ -7,25 +7,36 @@ import { randomUUID } from "crypto";
 import path from "path";
 import fs from "fs/promises";
 
-// ----------------------------
-// Utility function to generate slug from title
-// ----------------------------
+// Utility: generate slug from title
 function generateSlug(title: string) {
   return title
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-") // replace non-alphanumeric chars with "-"
-    .replace(/^-+|-+$/g, "");    // remove leading/trailing hyphens
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-// ✅ Directory where PDFs will be stored (local storage)
+// Directory to save PDFs
 const uploadDir = path.join(process.cwd(), "public", "pdfs");
 
 // ----------------------------
 // GET /api/admin/notes
 // ----------------------------
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const url = new URL(req.url);
+    const forDropdown = url.searchParams.get("dropdown") === "true";
+
+    if (forDropdown) {
+      // Return minimal data for QuizzesPanel dropdown
+      const notes = await prisma.note.findMany({
+        select: { id: true, title: true },
+        orderBy: { createdAt: "desc" },
+      });
+      return NextResponse.json(notes);
+    }
+
+    // Full data for admin view
     const notes = await prisma.note.findMany({
       orderBy: { createdAt: "desc" },
       include: { user: { select: { id: true, email: true } } },
@@ -48,26 +59,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔹 Find user in DB
+    // Find user in DB
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: { id: true, email: true },
     });
 
-    // Parse multipart form data
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 400 });
+
     const formData = await req.formData();
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const category = formData.get("category") as string;
     const file = formData.get("pdfFile") as File | Blob | null;
-
-    // Debug logs
-    console.log("---- Create Note request ----");
-    console.log("timestamp:", new Date().toISOString());
-    console.log("session.user:", session.user);
-    console.log("resolved user (DB):", user);
-    console.log("form fields:", { title, description, category });
-    console.log("file meta:", file ? { name: (file as File).name, type: file.type } : null);
 
     // Ensure upload directory exists
     await fs.mkdir(uploadDir, { recursive: true });
@@ -77,7 +81,6 @@ export async function POST(req: Request) {
       const fileName = `${randomUUID()}${path.extname((file as File).name)}`;
       pdfFilePath = `/pdfs/${fileName}`;
 
-      // Convert Web File/Blob to Node Buffer
       const arrayBuffer = await (file as File).arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
@@ -85,17 +88,8 @@ export async function POST(req: Request) {
       console.log("PDF saved to:", path.join(uploadDir, fileName));
     }
 
-    // Generate slug
     const slug = generateSlug(title);
 
-    // User ID to use
-    const userIdToUse = user?.id ?? null;
-
-    if (!userIdToUse) {
-      return NextResponse.json({ error: "No valid user found for this session" }, { status: 400 });
-    }
-
-    // Insert note into DB
     const note = await prisma.note.create({
       data: {
         title,
@@ -103,7 +97,7 @@ export async function POST(req: Request) {
         description,
         category,
         pdfFile: pdfFilePath ?? "",
-        userId: userIdToUse,
+        userId: user.id,
       },
     });
 

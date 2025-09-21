@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { FIRM_NAME } from "../config";
 
@@ -17,9 +17,10 @@ type AppRoutes =
   | "/signup"
   | "/dashboard/admin"; // admin panel route
 
+type NavLink = { name: string; href: AppRoutes };
+
 export default function Navbar() {
   const { data: session } = useSession();
-  const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -27,8 +28,7 @@ export default function Navbar() {
   const userRole = session?.user?.role as "OWNER" | "ADMIN" | "USER" | undefined;
 
   // Base nav links
-  const navLinks: { name: string; href: AppRoutes }[] = [
-    {name: "Admin Panel", href: "/dashboard/admin"},
+  const navLinks: NavLink[] = [
     { name: "Home", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Notes", href: "/dashboard/notes" },
@@ -37,9 +37,9 @@ export default function Navbar() {
     { name: "Contact", href: "/contact" },
   ];
 
-  // Add Admin Panel link only for OWNER or ADMIN
+  // Insert Admin Panel before Dashboard for OWNER or ADMIN
   if (isLoggedIn && (userRole === "OWNER" || userRole === "ADMIN")) {
-    navLinks.push({ name: "Admin Panel", href: "/dashboard/admin" });
+    navLinks.splice(1, 0, { name: "Admin Panel", href: "/dashboard/admin" });
   }
 
   const isActive = (href: string) =>
@@ -52,6 +52,22 @@ export default function Navbar() {
 
   const handleLinkClick = () => setMenuOpen(false);
 
+  const renderLinks = (links: NavLink[]) =>
+    links.map((link) => (
+      <Link
+        key={link.href}
+        href={link.href}
+        onClick={handleLinkClick}
+        className={`font-medium px-2 py-1 rounded ${
+          isActive(link.href)
+            ? "text-blue-600 bg-blue-100"
+            : "text-gray-700 hover:text-blue-700 hover:bg-gray-50"
+        }`}
+      >
+        {link.name}
+      </Link>
+    ));
+
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,24 +79,7 @@ export default function Navbar() {
 
           {/* Desktop Links */}
           <div className="hidden md:flex space-x-6 items-center">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`relative font-medium px-1 py-1 ${
-                  isActive(link.href)
-                    ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-700"
-                }`}
-              >
-                {link.name}
-                <span
-                  className={`absolute left-0 bottom-0 h-[2px] bg-blue-600 transition-all duration-300 ${
-                    isActive(link.href) ? "w-full" : "w-0"
-                  }`}
-                ></span>
-              </Link>
-            ))}
+            {renderLinks(navLinks)}
 
             {isLoggedIn ? (
               <button
@@ -93,13 +92,13 @@ export default function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="text-white bg-blue-700 px-4 py-2 rounded hover:bg-blue-800 transition w-max"
+                  className="text-white bg-blue-700 px-4 py-2 rounded hover:bg-blue-800 transition"
                 >
                   Login
                 </Link>
                 <Link
                   href="/signup"
-                  className="text-white bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition w-max"
+                  className="text-white bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition"
                 >
                   Sign Up
                 </Link>
@@ -149,27 +148,16 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white shadow-md">
-          <div className="px-4 pt-2 pb-4 space-y-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={handleLinkClick}
-                className={`block font-medium px-2 py-1 rounded ${
-                  isActive(link.href)
-                    ? "text-blue-600 bg-blue-100"
-                    : "text-gray-700 hover:text-blue-700 hover:bg-gray-50"
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
-
+        <div className="md:hidden bg-white shadow-lg px-4 pt-4 pb-6 flex flex-col space-y-2 rounded-b-lg transition-all duration-300">
+          <div className="flex flex-col space-y-2">
+            {renderLinks(navLinks)}
+          </div>
+          <hr className="my-2 border-gray-200" />
+          <div className="flex flex-col space-y-2">
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
-                className="block mx-auto mt-2 text-white bg-red-600 px-6 py-2 rounded hover:bg-red-700 transition"
+                className="w-full text-white bg-red-600 px-6 py-2 rounded-lg hover:bg-red-700 transition"
               >
                 Logout
               </button>
@@ -178,14 +166,14 @@ export default function Navbar() {
                 <Link
                   href="/login"
                   onClick={handleLinkClick}
-                  className="block mx-auto mt-2 text-white bg-blue-700 px-6 py-2 rounded hover:bg-blue-800 transition w-max"
+                  className="w-full text-white bg-blue-700 px-6 py-2 rounded-lg hover:bg-blue-800 transition text-center"
                 >
                   Login
                 </Link>
                 <Link
                   href="/signup"
                   onClick={handleLinkClick}
-                  className="block mx-auto mt-2 text-white bg-green-600 px-6 py-2 rounded hover:bg-green-700 transition w-max"
+                  className="w-full text-white bg-green-600 px-6 py-2 rounded-lg hover:bg-green-700 transition text-center"
                 >
                   Sign Up
                 </Link>

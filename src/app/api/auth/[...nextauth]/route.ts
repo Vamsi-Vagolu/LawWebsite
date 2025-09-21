@@ -22,6 +22,13 @@ export const authOptions: AuthOptions = {
         // ✅ Fetch user with role, no need for role: true in select
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            password: true,
+            role: true, // <-- Add this line
+          },
         });
 
         if (!user || !user.password) return null;
