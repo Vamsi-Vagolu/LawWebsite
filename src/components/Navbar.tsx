@@ -59,7 +59,10 @@ export default function Navbar() {
 
   const confirmLogout = async () => {
     setShowConfirm(false);
-    await signOut({ callbackUrl: "/logout" }); // redirect to /logout page
+    // Sign out without redirect, then manually redirect
+    await signOut({ redirect: false });
+    // Use current origin + logout path
+    window.location.href = `${window.location.origin}/logout`;
   };
 
   const cancelLogout = () => {
