@@ -200,8 +200,8 @@ export default function NotesPanel() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded w-1/3 max-h-[90vh] overflow-auto">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md sm:max-w-lg mx-auto max-h-[90vh] overflow-auto">
             <h3 className="text-xl font-bold mb-4">
               {editingNote ? "Edit Note" : "Add Note"}
             </h3>
@@ -246,17 +246,17 @@ export default function NotesPanel() {
                 }
               />
 
-              <div className="flex justify-end gap-2 mt-4">
+              <div className="flex gap-3 mt-4">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 bg-gray-400 text-white rounded"
+                  className="flex-1 py-3 px-4 bg-gray-400 text-white rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                  className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg"
                 >
                   {editingNote ? "Update" : "Create"}
                 </button>
