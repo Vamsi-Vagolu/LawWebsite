@@ -23,6 +23,7 @@ export default function Navbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false); // custom modal state
 
   const isLoggedIn = !!session?.user;
   const userRole = session?.user?.role as "OWNER" | "ADMIN" | "USER" | undefined;
@@ -45,9 +46,18 @@ export default function Navbar() {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
-  const handleLogout = async () => {
-    await signOut({ callbackUrl: "/" });
+  const handleLogoutClick = () => {
     setMenuOpen(false);
+    setShowConfirm(true); // show confirmation modal
+  };
+
+  const confirmLogout = async () => {
+    setShowConfirm(false);
+    await signOut({ callbackUrl: "/logout" }); // redirect to /logout page
+  };
+
+  const cancelLogout = () => {
+    setShowConfirm(false);
   };
 
   const handleLinkClick = () => setMenuOpen(false);
@@ -69,119 +79,150 @@ export default function Navbar() {
     ));
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          {/* Logo */}
-          <Link href="/" className="text-2xl font-bold text-blue-700">
-            {FIRM_NAME}
-          </Link>
+    <>
+      {/* Navbar */}
+      <nav className="bg-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            {/* Logo */}
+            <Link href="/" className="text-2xl font-bold text-blue-700">
+              {FIRM_NAME}
+            </Link>
 
-          {/* Desktop Links */}
-          <div className="hidden md:flex space-x-6 items-center">
-            {renderLinks(navLinks)}
+            {/* Desktop Links */}
+            <div className="hidden md:flex space-x-6 items-center">
+              {renderLinks(navLinks)}
 
-            {isLoggedIn ? (
-              <button
-                onClick={handleLogout}
-                className="text-white bg-red-600 px-4 py-2 rounded hover:bg-red-700 transition"
-              >
-                Logout
-              </button>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-white bg-blue-700 px-4 py-2 rounded hover:bg-blue-800 transition"
+              {isLoggedIn ? (
+                <button
+                  onClick={handleLogoutClick}
+                  className="text-white bg-red-600 px-4 py-2 rounded hover:bg-red-700 transition"
                 >
-                  Login
-                </Link>
-                <Link
-                  href="/signup"
-                  className="text-white bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-700 rounded"
-            >
-              {menuOpen ? (
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                  Logout
+                </button>
               ) : (
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
+                <>
+                  <Link
+                    href="/login"
+                    className="text-white bg-blue-700 px-4 py-2 rounded hover:bg-blue-800 transition"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="text-white bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition"
+                  >
+                    Sign Up
+                  </Link>
+                </>
               )}
-            </button>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-700 rounded"
+              >
+                {menuOpen ? (
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div className="md:hidden bg-white shadow-lg px-4 pt-4 pb-6 flex flex-col space-y-2 rounded-b-lg transition-all duration-300">
-          <div className="flex flex-col space-y-2">
-            {renderLinks(navLinks)}
+        {/* Mobile Menu */}
+        {menuOpen && (
+          <div className="md:hidden bg-white shadow-lg px-4 pt-4 pb-6 flex flex-col space-y-2 rounded-b-lg transition-all duration-300">
+            <div className="flex flex-col space-y-2">
+              {renderLinks(navLinks)}
+            </div>
+            <hr className="my-2 border-gray-200" />
+            <div className="flex flex-col space-y-2">
+              {isLoggedIn ? (
+                <button
+                  onClick={handleLogoutClick}
+                  className="w-full text-white bg-red-600 px-6 py-2 rounded-lg hover:bg-red-700 transition"
+                >
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={handleLinkClick}
+                    className="w-full text-white bg-blue-700 px-6 py-2 rounded-lg hover:bg-blue-800 transition text-center"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={handleLinkClick}
+                    className="w-full text-white bg-green-600 px-6 py-2 rounded-lg hover:bg-green-700 transition text-center"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
-          <hr className="my-2 border-gray-200" />
-          <div className="flex flex-col space-y-2">
-            {isLoggedIn ? (
+        )}
+      </nav>
+
+      {/* Custom Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Confirm Logout
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to log out?
+            </p>
+            <div className="flex justify-end space-x-4">
               <button
-                onClick={handleLogout}
-                className="w-full text-white bg-red-600 px-6 py-2 rounded-lg hover:bg-red-700 transition"
+                onClick={cancelLogout}
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
               >
                 Logout
               </button>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  onClick={handleLinkClick}
-                  className="w-full text-white bg-blue-700 px-6 py-2 rounded-lg hover:bg-blue-800 transition text-center"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/signup"
-                  onClick={handleLinkClick}
-                  className="w-full text-white bg-green-600 px-6 py-2 rounded-lg hover:bg-green-700 transition text-center"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
+            </div>
           </div>
         </div>
       )}
-    </nav>
+    </>
   );
 }
