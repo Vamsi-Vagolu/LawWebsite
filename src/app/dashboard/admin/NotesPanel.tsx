@@ -2,7 +2,7 @@
 
 import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
-import { FileUpload } from "./FileUpload";
+import FileUpload from "./FileUpload"; // ✅ default import
 
 interface Note {
   id: string;
@@ -15,10 +15,10 @@ interface Note {
 
 export default function NotesPanel() {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [search, setSearch] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  const [showModal, setShowModal] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   const [formData, setFormData] = useState<{
@@ -73,24 +73,34 @@ export default function NotesPanel() {
     setFormData({ title: "", description: "", category: "", pdfFile: null });
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, files } = e.target as HTMLInputElement;
     if (files) setFormData((prev) => ({ ...prev, pdfFile: files[0] }));
     else setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (file: File | null) => {
-    setFormData((prev) => ({ ...prev, pdfFile: file }));
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (!formData.title || (!editingNote && !formData.pdfFile)) {
+      alert("Title and PDF are required.");
+      return;
+    }
+
     try {
       const form = new FormData();
       form.append("title", formData.title);
       form.append("description", formData.description);
       form.append("category", formData.category);
-      if (formData.pdfFile) form.append("pdfFile", formData.pdfFile);
+
+      if (formData.pdfFile) {
+        console.log("📤 Uploading PDF:", formData.pdfFile.name, formData.pdfFile.size);
+        form.append("pdfFile", formData.pdfFile);
+      } else {
+        console.warn("⚠️ No PDF file attached for this note.");
+      }
 
       if (editingNote) {
         const res = await axios.put<Note>(
@@ -109,7 +119,7 @@ export default function NotesPanel() {
       }
 
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to save note:", err);
       alert("Failed to save note. Make sure PDF is provided.");
     }
@@ -191,7 +201,7 @@ export default function NotesPanel() {
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded w-1/3">
+          <div className="bg-white p-6 rounded w-1/3 max-h-[90vh] overflow-auto">
             <h3 className="text-xl font-bold mb-4">
               {editingNote ? "Edit Note" : "Add Note"}
             </h3>
@@ -229,7 +239,12 @@ export default function NotesPanel() {
                 />
               </div>
 
-              <FileUpload file={formData.pdfFile} setFile={(f) => setFormData(prev => ({ ...prev, pdfFile: f }))} />
+              <FileUpload
+                file={formData.pdfFile}
+                setFile={(f) =>
+                  setFormData((prev) => ({ ...prev, pdfFile: f }))
+                }
+              />
 
               <div className="flex justify-end gap-2 mt-4">
                 <button

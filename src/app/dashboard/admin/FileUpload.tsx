@@ -7,9 +7,17 @@ interface FileUploadProps {
   setFile: (file: File | null) => void;
 }
 
-export const FileUpload = ({ file, setFile }: FileUploadProps) => {
+const FileUpload = ({ file, setFile }: FileUploadProps) => {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sanitize filename: replace spaces with _ and remove unsafe chars
+  const sanitizeFileName = (file: File) => {
+    const sanitized = file.name
+      .replace(/\s+/g, "_") // replace spaces
+      .replace(/[^\w.-]/g, ""); // remove unsafe chars
+    return new File([file], sanitized, { type: file.type });
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -23,7 +31,7 @@ export const FileUpload = ({ file, setFile }: FileUploadProps) => {
     setDragOver(false);
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && droppedFile.type === "application/pdf") {
-      setFile(droppedFile);
+      setFile(sanitizeFileName(droppedFile));
     } else {
       alert("Please drop a PDF file.");
     }
@@ -32,17 +40,16 @@ export const FileUpload = ({ file, setFile }: FileUploadProps) => {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
-      setFile(selectedFile);
+      setFile(sanitizeFileName(selectedFile));
     } else {
       alert("Please select a PDF file.");
     }
   };
 
-  // **Fixed remove behavior:** only clears the file, no file selector triggered
   const removeFile = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); // prevent click on container
+    e.stopPropagation();
     setFile(null);
-    if (inputRef.current) inputRef.current.value = ""; // clear input
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   return (
@@ -60,7 +67,6 @@ export const FileUpload = ({ file, setFile }: FileUploadProps) => {
       >
         {file ? (
           <div className="flex flex-col items-center gap-2">
-            {/* PDF Preview */}
             <iframe
               src={URL.createObjectURL(file)}
               width="200"
@@ -93,3 +99,5 @@ export const FileUpload = ({ file, setFile }: FileUploadProps) => {
     </div>
   );
 };
+
+export default FileUpload;

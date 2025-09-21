@@ -83,7 +83,7 @@ model Note {
   slug        String   @unique
   description String?
   category    String?
-  pdfFile     String
+  pdfFile     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String
