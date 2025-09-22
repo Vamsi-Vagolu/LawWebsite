@@ -81,47 +81,50 @@ export default function NotesPanel() {
     else setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!formData.title || (!editingNote && !formData.pdfFile)) {
-      alert("Title and PDF are required.");
-      return;
-    }
-
+    
     try {
       const form = new FormData();
       form.append("title", formData.title);
       form.append("description", formData.description);
       form.append("category", formData.category);
-
+      
       if (formData.pdfFile) {
-        console.log("📤 Uploading PDF:", formData.pdfFile.name, formData.pdfFile.size);
         form.append("pdfFile", formData.pdfFile);
-      } else {
-        console.warn("⚠️ No PDF file attached for this note.");
       }
 
-      if (editingNote) {
-        const res = await axios.put<Note>(
-          `/api/admin/notes/${editingNote.id}`,
-          form,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-        setNotes((prev) =>
-          prev.map((n) => (n.id === editingNote.id ? res.data : n))
-        );
-      } else {
-        const res = await axios.post<Note>("/api/admin/notes", form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        setNotes((prev) => [res.data, ...prev]);
+      const url = editingNote 
+        ? `/api/admin/notes/${editingNote.id}` 
+        : "/api/admin/notes";
+      
+      const method = editingNote ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        body: form,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Handle validation errors properly
+        if (data.details && Array.isArray(data.details)) {
+          alert(`Validation Error:\n${data.details.join('\n')}`);
+        } else {
+          alert(`Error: ${data.error || 'Something went wrong'}`);
+        }
+        return;
       }
 
+      // Success
+      alert(`Note ${editingNote ? 'updated' : 'created'} successfully!`);
+      fetchNotes();
       closeModal();
-    } catch (err: any) {
-      console.error("Failed to save note:", err);
-      alert("Failed to save note. Make sure PDF is provided.");
+
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Network error. Please try again.");
     }
   };
 

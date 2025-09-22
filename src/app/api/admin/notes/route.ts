@@ -3,48 +3,59 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { randomUUID } from "crypto";
+import { validateNote, sanitizeInput } from "@/lib/validation";
+import { handleApiError, AppError } from "@/lib/errorHandler";
 import path from "path";
 import fs from "fs/promises";
+import { randomUUID } from "crypto";
 
 // Utility: generate slug from title
 function generateSlug(title: string) {
   return title
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
-// Directory to save PDFs
-const uploadDir = path.join(process.cwd(), "public", "pdfs");
+// Directory to save PDFs (PRIVATE folder now)
+const uploadDir = path.join(process.cwd(), "private", "pdfs");
+
+// Ensure private directory exists
+async function ensureUploadDir() {
+  try {
+    await fs.access(uploadDir);
+  } catch {
+    await fs.mkdir(uploadDir, { recursive: true });
+  }
+}
 
 // ----------------------------
 // GET /api/admin/notes
 // ----------------------------
 export async function GET(req: Request) {
   try {
-    const url = new URL(req.url);
-    const forDropdown = url.searchParams.get("dropdown") === "true";
-
-    if (forDropdown) {
-      // Return minimal data for QuizzesPanel dropdown
-      const notes = await prisma.note.findMany({
-        select: { id: true, title: true },
-        orderBy: { createdAt: "desc" },
-      });
-      return NextResponse.json(notes);
-    }
-
-    // Full data for admin view
+    // Fetch all notes, newest first
     const notes = await prisma.note.findMany({
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { id: true, email: true } } },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        slug: true,
+        pdfFile: true,
+      },
     });
-    return NextResponse.json(notes);
-  } catch (error) {
-    console.error("Failed to fetch notes:", error);
-    return NextResponse.json({ error: "Failed to fetch notes" }, { status: 500 });
+
+    return NextResponse.json(notes, { status: 200 });
+  } catch (err) {
+    console.error("Error fetching notes:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch notes" },
+      { status: 500 }
+    );
   }
 }
 
@@ -52,58 +63,79 @@ export async function GET(req: Request) {
 // POST /api/admin/notes
 // ----------------------------
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !["ADMIN", "OWNER"].includes(session.user.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Find user in DB
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true, email: true },
-    });
-
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 400 });
+    await ensureUploadDir();
 
     const formData = await req.formData();
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const category = formData.get("category") as string;
-    const file = formData.get("pdfFile") as File | Blob | null;
+    const rawData = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string || "",
+      category: formData.get("category") as string || "",
+    };
 
-    // Ensure upload directory exists
-    await fs.mkdir(uploadDir, { recursive: true });
+    // Validate input
+    const validation = validateNote(rawData);
+    if (!validation.isValid) {
+      return NextResponse.json({ 
+        error: "Validation failed", 
+        details: validation.errors 
+      }, { status: 400 });
+    }
 
-    let pdfFilePath: string | null = null;
-    if (file) {
-      const fileName = `${randomUUID()}${path.extname((file as File).name)}`;
-      pdfFilePath = `/pdfs/${fileName}`;
+    // Sanitize input
+    const title = sanitizeInput(rawData.title);
+    const description = sanitizeInput(rawData.description);
+    const category = sanitizeInput(rawData.category);
 
-      const arrayBuffer = await (file as File).arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+    const pdfFile = formData.get("pdfFile") as File | null;
 
-      await fs.writeFile(path.join(uploadDir, fileName), buffer);
-      console.log("PDF saved to:", path.join(uploadDir, fileName));
+    let pdfFileName = "";
+    if (pdfFile && pdfFile.size > 0) {
+      // File size validation (10MB limit)
+      if (pdfFile.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+      }
+
+      // File type validation
+      if (pdfFile.type !== "application/pdf") {
+        return NextResponse.json({ error: "Only PDF files allowed" }, { status: 400 });
+      }
+
+      const uniqueId = randomUUID();
+      pdfFileName = `${uniqueId}.pdf`;
+
+      const buffer = await pdfFile.arrayBuffer();
+      const filePath = path.join(uploadDir, pdfFileName);
+      await fs.writeFile(filePath, Buffer.from(buffer));
     }
 
     const slug = generateSlug(title);
+    const userId = session.user.id;
 
-    const note = await prisma.note.create({
+    const newNote = await prisma.note.create({
       data: {
-        title,
+        title: title.trim(),
+        description: description.trim(),
+        category: category.trim(),
         slug,
-        description,
-        category,
-        pdfFile: pdfFilePath ?? "",
-        userId: user.id,
+        pdfFile: pdfFileName ? `/api/protected-pdf/${pdfFileName}` : "", // Protected URL
+        userId,
       },
     });
 
-    return NextResponse.json(note, { status: 201 });
-  } catch (error) {
-    console.error("Failed to create note:", error);
-    return NextResponse.json({ error: "Failed to create note" }, { status: 500 });
+    return NextResponse.json(newNote, { status: 201 });
+
+  } catch (err: any) {
+    console.error("Error creating note:", err);
+    return NextResponse.json(
+      { error: "Failed to create note" },
+      { status: 500 }
+    );
   }
 }

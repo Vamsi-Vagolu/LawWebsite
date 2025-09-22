@@ -1,9 +1,18 @@
 // app/api/notes/route.ts
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Use consistent import
+import { getServerSession } from "next-auth";
+import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/auth";
+import { handleApiError, AppError } from "@/lib/errorHandler";
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      throw new AppError("Unauthorized", 401);
+    }
+
     // Fetch all notes, newest first
     const notes = await prisma.note.findMany({
       orderBy: { createdAt: "desc" },
@@ -14,16 +23,13 @@ export async function GET() {
         category: true,
         slug: true,
         pdfFile: true,
+        createdAt: true,
       },
     });
 
     return NextResponse.json(notes, { status: 200 });
-  } catch (err) {
-    console.error("Error fetching notes:", err);
-    return NextResponse.json(
-      { error: "Failed to fetch notes" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

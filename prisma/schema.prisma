@@ -3,67 +3,63 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
-}
-
-//
-// 🔑 NextAuth Models
-//
-
-enum Role {
-  OWNER
-  ADMIN
-  USER
-  // add more roles here later
-}
-
-model User {
-  id            String    @id @default(uuid())
-  name          String?
-  email         String?   @unique
-  password      String?
-  emailVerified DateTime?
-  image         String?
-  role          Role      @default(USER) // default role is USER
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts  Account[]
-  sessions  Session[]
-  notes     Note[]             @relation("UserNotes")
-  quizzes   Quiz[]
-  favorites UserFavoriteNote[]
-  viewed    ViewedNote[]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Account {
-  id                Int     @id @default(autoincrement())
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts         Account[]
+  sessions         Session[]
+  notes            Note[]
+  quizzes          Quiz[]
+  viewedNotes      ViewedNote[]
+  favoriteNotes    UserFavoriteNote[]
+
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
 }
 
 model VerificationToken {
@@ -74,67 +70,87 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-//
-// 📚 App-specific Models
-//
 model Note {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   title       String
-  slug        String   @unique
   description String?
   category    String?
+  slug        String   @unique
   pdfFile     String?
+  userId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  userId      String
-  user        User     @relation("UserNotes", fields: [userId], references: [id])
 
-  favorites UserFavoriteNote[]
-  viewed    ViewedNote[]
-  quizzes   Quiz[]
+  // Relations
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizzes       Quiz[]
+  viewedNotes   ViewedNote[]
+  favoriteNotes UserFavoriteNote[]
+
+  @@index([slug])
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
 }
 
 model Quiz {
-  id        Int        @id @default(autoincrement())
+  id        String   @id @default(cuid())
   title     String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  noteId    String? // optional foreign key
-  note      Note?      @relation(fields: [noteId], references: [id])
-  questions Question[]
-  User      User?      @relation(fields: [userId], references: [id])
+  noteId    String?
   userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  note      Note?      @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  questions Question[]
+
+  @@index([noteId])
+  @@index([userId])
 }
 
 model Question {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
   question  String
-  options   String[] // store as array
-  answer    String
-  quizId    Int
-  quiz      Quiz     @relation(fields: [quizId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model UserFavoriteNote {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  note      Note     @relation(fields: [noteId], references: [id])
-  noteId    String
+  options   String[] // Array of options
+  answer    String   // Correct answer
+  quizId    String
   createdAt DateTime @default(now())
 
-  @@unique([userId, noteId])
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
 }
 
 model ViewedNote {
-  id       String   @id @default(uuid())
-  user     User     @relation(fields: [userId], references: [id])
-  userId   String
-  note     Note     @relation(fields: [noteId], references: [id])
-  noteId   String
-  viewedAt DateTime @default(now())
+  id     String @id @default(cuid())
+  userId String
+  noteId String
 
-  @@index([userId, viewedAt])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, noteId])
+  @@index([userId])
+  @@index([noteId])
+}
+
+model UserFavoriteNote {
+  id     String @id @default(cuid())
+  userId String
+  noteId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, noteId])
+  @@index([userId])
+  @@index([noteId])
+}
+
+enum Role {
+  USER
+  ADMIN
+  OWNER
 }
