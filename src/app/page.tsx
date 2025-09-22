@@ -2,15 +2,42 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FIRM_NAME } from "../config";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
+  const [greeting, setGreeting] = useState("Hello");
   
   const isLoggedIn = !!session?.user;
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User";
+
+  // ✅ Dynamic greeting based on current time
+  useEffect(() => {
+    const updateGreeting = () => {
+      const currentHour = new Date().getHours();
+      
+      if (currentHour >= 5 && currentHour < 12) {
+        setGreeting("Good morning");
+      } else if (currentHour >= 12 && currentHour < 17) {
+        setGreeting("Good afternoon");
+      } else if (currentHour >= 17 && currentHour < 22) {
+        setGreeting("Good evening");
+      } else {
+        setGreeting("Good night");
+      }
+    };
+
+    // Update greeting immediately
+    updateGreeting();
+
+    // Update greeting every minute
+    const interval = setInterval(updateGreeting, 60000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, []);
 
   // Mock data for logged-in users
   const recentNotes = [
@@ -50,7 +77,7 @@ export default function HomePage() {
             {isLoggedIn ? (
               <div>
                 <h2 className="text-2xl md:text-3xl font-semibold mb-4">
-                  Welcome back, {userName}!
+                  {greeting}, {userName}!
                 </h2>
                 <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
                   Continue your legal education journey with our comprehensive study materials and resources.
