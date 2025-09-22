@@ -19,7 +19,6 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // ✅ Fetch user with role, no need for role: true in select
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           select: {
@@ -27,7 +26,7 @@ export const authOptions: AuthOptions = {
             name: true,
             email: true,
             password: true,
-            role: true, // <-- Add this line
+            role: true,
           },
         });
 
@@ -36,12 +35,11 @@ export const authOptions: AuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        // ✅ Return typed user object
         return {
           id: user.id,
           name: user.name ?? null,
           email: user.email ?? null,
-          role: user.role, // enum: "OWNER" | "ADMIN" | "USER"
+          role: user.role,
         };
       },
     }),
@@ -65,13 +63,51 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
+    // ✅ Smart redirect callback - respects the original destination
+    async redirect({ url, baseUrl }) {
+      console.log("Redirect attempt:", url); // Debug log
+      
+      // ✅ Handle dashboard redirects (convert to home)
+      if (url.includes("/dashboard")) {
+        console.log("Dashboard redirect intercepted, going to home");
+        return baseUrl;
+      }
+      
+      // ✅ Allow valid app routes to redirect properly
+      const validRoutes = ["/", "/notes", "/blog", "/contact", "/admin", "/owner"];
+      
+      // If it's a relative URL, make it absolute
+      if (url.startsWith("/")) {
+        const fullUrl = `${baseUrl}${url}`;
+        // Check if it's a valid route in our app
+        const pathname = url.split("?")[0]; // Remove query params
+        if (validRoutes.some(route => pathname === route || pathname.startsWith(route + "/"))) {
+          console.log(`Redirecting to valid route: ${fullUrl}`);
+          return fullUrl;
+        }
+        // Default to home for invalid routes
+        return baseUrl;
+      }
+      
+      // If same origin and valid, allow it
+      if (new URL(url).origin === baseUrl) {
+        const pathname = new URL(url).pathname;
+        if (validRoutes.some(route => pathname === route || pathname.startsWith(route + "/"))) {
+          console.log(`Allowing same-origin valid redirect: ${url}`);
+          return url;
+        }
+      }
+      
+      // Default to home for safety
+      console.log("Defaulting to home page");
+      return baseUrl;
+    },
   },
   pages: {
-    signIn: "/login", // ✅ Change from "/auth/signin" to "/login" (matches your actual login page)
+    signIn: "/login",
   },
   debug: false,
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

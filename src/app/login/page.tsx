@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
   const { data: session, status } = useSession();
   
   // Form state
@@ -30,9 +32,9 @@ export default function LoginPage() {
   // Auto-redirect if already logged in
   useEffect(() => {
     if (session) {
-      router.replace("/dashboard");
+      router.replace(callbackUrl);
     }
-  }, [session, router]);
+  }, [session, router, callbackUrl]);
 
   // Load saved email from sessionStorage (more secure than localStorage)
   useEffect(() => {
@@ -154,7 +156,9 @@ export default function LoginPage() {
         setLockoutTime(null);
         localStorage.removeItem("loginAttempts");
         localStorage.removeItem("lockoutTime");
-        router.push("/dashboard");
+        
+        // ✅ Use the callback URL or default to home
+        router.push(callbackUrl);
       }
     } catch (error) {
       setError("An unexpected error occurred. Please try again.");
@@ -168,7 +172,8 @@ export default function LoginPage() {
     setError("");
     
     try {
-      await signIn(provider, { callbackUrl: "/dashboard" });
+      // ✅ Use the callback URL for social login too
+      await signIn(provider, { callbackUrl });
     } catch (error) {
       setError("Social login failed. Please try again.");
     } finally {

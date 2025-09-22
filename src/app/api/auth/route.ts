@@ -67,9 +67,22 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
+    // ✅ Add redirect callback to control where users go after login
+    async redirect({ url, baseUrl }) {
+      // If the URL is relative, make it absolute
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // If the URL is the baseUrl + dashboard, redirect to home
+      if (url === `${baseUrl}/dashboard`) return baseUrl;
+      // If the URL is trying to go to dashboard, redirect to home
+      if (url.includes("/dashboard")) return baseUrl;
+      // Otherwise, if it's the same origin, allow it
+      if (new URL(url).origin === baseUrl) return url;
+      // Default to home page
+      return baseUrl;
+    },
   },
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/login", // ✅ Fixed: Change from "/auth/signin" to "/login"
   },
   debug: false,
 };
