@@ -9,10 +9,51 @@ import fs from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 
+// GET note details
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    // Security: Role-based authentication
+    if (!session || !["ADMIN", "OWNER", "USER"].includes(session.user.role)) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    // ✅ Await params before accessing properties
+    const { id } = await params;
+
+    // Check if note exists
+    const note = await prisma.note.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        slug: true,
+        pdfFile: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!note) {
+      throw new AppError("Note not found", 404);
+    }
+
+    return NextResponse.json(note);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 // PUT edit note
 export async function PUT(
-  req: Request,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -22,7 +63,8 @@ export async function PUT(
       throw new AppError("Unauthorized", 401);
     }
 
-    const { id } = context.params;
+    // ✅ Await params before accessing properties
+    const { id } = await params;
     if (!id) {
       throw new AppError("Note ID is required", 400);
     }
@@ -37,7 +79,7 @@ export async function PUT(
       throw new AppError("Note not found", 404);
     }
 
-    const formData = await req.formData();
+    const formData = await request.formData();
     const rawData = {
       title: formData.get("title") as string,
       description: (formData.get("description") as string) || "",
@@ -119,8 +161,8 @@ export async function PUT(
 
 // DELETE note with PDF file deletion
 export async function DELETE(
-  req: NextRequest,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -129,7 +171,8 @@ export async function DELETE(
       throw new AppError("Unauthorized", 401);
     }
 
-    const { id } = context.params;
+    // ✅ Await params before accessing properties
+    const { id } = await params;
     if (!id) {
       throw new AppError("Note ID is required", 400);
     }

@@ -87,16 +87,16 @@ export default function Footer() {
                     href: "/"
                   },
                   {
-                    name: "Dashboard",
-                    href: "/dashboard"
-                  },
-                  {
                     name: "Notes",
-                    href: "/dashboard/notes"
+                    href: "/notes"
                   },
                   {
-                    name: "Quizzes",
-                    href: "/dashboard/quizzes"
+                    name: "Admin",
+                    href: "/admin"
+                  },
+                  {
+                    name: "Owner",
+                    href: "/owner"
                   },
                   {
                     name: "Blog",

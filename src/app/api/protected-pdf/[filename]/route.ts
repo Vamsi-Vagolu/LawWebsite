@@ -1,32 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
 import path from "path";
 import fs from "fs/promises";
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { filename: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ filename: string }> }
 ) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session) {
+    
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const filename = params.filename;
+    // ✅ Await params before accessing properties
+    const { filename } = await params;
+
     if (!filename || filename.includes("..") || filename.includes("/")) {
       return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
     }
 
-    // Check if file exists in private folder
     const filePath = path.join(process.cwd(), "private", "pdfs", filename);
     
     try {
       const file = await fs.readFile(filePath);
       
-      // Convert Buffer to Uint8Array for NextResponse
       return new NextResponse(new Uint8Array(file), {
         headers: {
           "Content-Type": "application/pdf",
@@ -44,6 +44,3 @@ export async function GET(
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
-
-// Remove the POST method - it doesn't belong in this file
-// POST should be in /api/admin/notes/route.ts

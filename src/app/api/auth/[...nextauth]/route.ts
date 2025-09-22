@@ -67,7 +67,7 @@ export const authOptions: AuthOptions = {
     },
   },
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/login", // ✅ Change from "/auth/signin" to "/login" (matches your actual login page)
   },
   debug: false,
 };

@@ -83,7 +83,7 @@ export default function OwnerDashboardPage() {
       {/* Management Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link
-          href="/dashboard/owner/admins"
+          href="/owner/admins"
           className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border-l-4 border-blue-500"
         >
           <div className="flex items-center">
@@ -100,7 +100,7 @@ export default function OwnerDashboardPage() {
         </Link>
 
         <Link
-          href="/dashboard/owner/users"
+          href="/owner/users"
           className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border-l-4 border-green-500"
         >
           <div className="flex items-center">
@@ -117,7 +117,7 @@ export default function OwnerDashboardPage() {
         </Link>
 
         <Link
-          href="/dashboard/owner/settings"
+          href="/owner/settings"
           className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border-l-4 border-purple-500"
         >
           <div className="flex items-center">

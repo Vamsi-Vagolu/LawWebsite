@@ -125,7 +125,7 @@ export default function NotesPage() {
               </div>
               <p className="text-gray-700 mb-4">{note.description}</p>
               <Link
-                href={`/dashboard/notes/${note.slug}`}
+                href={`/notes/${note.slug}`}
                 className="text-blue-700 font-medium hover:underline"
               >
                 View Note

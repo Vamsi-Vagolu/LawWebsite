@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "../../../../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 
-export async function PUT(
-  req: NextRequest,
-  context: { params: { id: string } }
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== "OWNER") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check if user is owner
+    if (!session?.user || session.user.role !== "OWNER") {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = context.params;
+    // ✅ Await params before accessing properties
+    const { id } = await params;
 
     if (!id) {
-      return NextResponse.json({ error: "User ID required" }, { status: 400 });
+      return Response.json({ error: "User ID is required" }, { status: 400 });
     }
 
     const updatedUser = await prisma.user.update({
@@ -27,14 +29,10 @@ export async function PUT(
 
     return NextResponse.json({
       message: "User promoted to Admin successfully",
-      user: updatedUser
+      user: updatedUser,
     });
-
   } catch (error) {
     console.error("Error promoting user:", error);
-    return NextResponse.json(
-      { error: "Failed to promote user" },
-      { status: 500 }
-    );
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
 }
