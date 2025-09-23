@@ -144,3 +144,23 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* ✅ Add this at the end of your globals.css file */
+
+/* Maintenance Page - Force clean display */
+body:has(.maintenance-content) nav,
+body:has(.maintenance-content) .navbar,
+body:has(.maintenance-content) header {
+  display: none !important;
+}
+
+/* Alternative approach */
+.maintenance-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
