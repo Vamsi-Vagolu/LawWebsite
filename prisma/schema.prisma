@@ -149,6 +149,18 @@ model UserFavoriteNote {
   @@index([noteId])
 }
 
+model MaintenanceSettings {
+  id        String   @id @default(cuid())
+  isEnabled Boolean  @default(false)
+  message   String?
+  startTime DateTime?
+  endTime   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("maintenance_settings")
+}
+
 enum Role {
   USER
   ADMIN

@@ -2,42 +2,37 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import SessionProviderWrapper from "./SessionProviderWrapper"; // client wrapper
+// import Footer from "../components/Footer"; // if you have one
+import SessionProviderWrapper from "./SessionProviderWrapper";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
   subsets: ["latin"],
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
-  title: "LawFirmEdu",
-  description: "Law notes, quizzes, and educational resources for aspiring lawyers",
+  title: "Law Firm Education Site",
+  description: "Legal education resources and study materials",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProviderWrapper>
-          <div className="flex flex-col min-h-screen">
-            <header>
-              <Navbar />
-            </header>
-
-            <main className="flex-grow bg-gray-50">
-              {children}
-            </main>
-
-            <footer>
-              <Footer />
-            </footer>
-          </div>
+          {/* ✅ Always show navbar/footer - maintenance page has its own layout */}
+          <Navbar />
+          <main>{children}</main>
+          {/* <Footer /> */}
         </SessionProviderWrapper>
       </body>
     </html>
