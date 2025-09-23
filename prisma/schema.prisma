@@ -161,6 +161,15 @@ model MaintenanceSettings {
   @@map("maintenance_settings")
 }
 
+model MaintenanceMode {
+  id        String   @id @default(cuid())
+  isEnabled Boolean  @default(false)
+  message   String?
+  endTime   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum Role {
   USER
   ADMIN

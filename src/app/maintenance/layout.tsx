@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-<<<<<<< HEAD
-=======
 import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({
@@ -12,7 +10,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
 });
->>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
 
 export const metadata: Metadata = {
   title: 'Maintenance - Law Firm Site',
@@ -24,10 +21,6 @@ export default function MaintenanceLayout({
 }: {
   children: React.ReactNode;
 }) {
-<<<<<<< HEAD
-  return <>{children}</>;
-}
-=======
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
@@ -38,4 +31,3 @@ export default function MaintenanceLayout({
     </html>
   );
 }
->>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
