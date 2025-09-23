@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "../components/Navbar";
 // import Footer from "../components/Footer"; // if you have one
 import SessionProviderWrapper from "./SessionProviderWrapper";
+import MaintenanceListener from '../components/MaintenanceListener';
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProviderWrapper>
+          <MaintenanceListener />
           {/* ✅ Always show navbar/footer - maintenance page has its own layout */}
           <Navbar />
           <main>{children}</main>
