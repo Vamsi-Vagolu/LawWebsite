@@ -422,36 +422,52 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Enhanced Mobile Menu Button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="relative p-2 text-gray-700 hover:text-blue-700 hover:bg-gray-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <div className="relative w-6 h-6">
-                  <span
-                    className={`absolute left-0 top-1 w-6 h-0.5 bg-current transform transition-all duration-300 ${
-                      menuOpen ? "rotate-45 translate-y-2" : ""
-                    }`}
-                  ></span>
-                  <span
-                    className={`absolute left-0 top-3 w-6 h-0.5 bg-current transition-all duration-300 ${
-                      menuOpen ? "opacity-0" : ""
-                    }`}
-                  ></span>
-                  <span
-                    className={`absolute left-0 top-5 w-6 h-0.5 bg-current transform transition-all duration-300 ${
-                      menuOpen ? "-rotate-45 -translate-y-2" : ""
-                    }`}
-                  ></span>
-                </div>
-                {isLoggedIn && notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {notificationCount}
-                  </span>
-                )}
-              </button>
-            </div>
+            {/* Mobile menu button - FIX THE CLICK HANDLER */}
+            <button
+              className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={() => {
+                // ✅ If menu is open (showing X), close it
+                // ✅ If menu is closed (showing hamburger), open it
+                if (menuOpen) {
+                  setMenuOpen(false); // Close menu when X is clicked
+                } else {
+                  setMenuOpen(true); // Open menu when hamburger is clicked
+                }
+              }}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+            >
+              {menuOpen ? (
+                // X icon - clicking will close menu
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              ) : (
+                // Hamburger icon - clicking will open menu
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
 

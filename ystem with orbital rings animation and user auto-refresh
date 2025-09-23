@@ -1,0 +1,87 @@
+[1mdiff --git a/src/components/Navbar.tsx b/src/components/Navbar.tsx[m
+[1mindex 720f654..c4dad0d 100644[m
+[1m--- a/src/components/Navbar.tsx[m
+[1m+++ b/src/components/Navbar.tsx[m
+[36m@@ -422,36 +422,52 @@[m [mexport default function Navbar() {[m
+               )}[m
+             </div>[m
+ [m
+[31m-            {/* Enhanced Mobile Menu Button */}[m
+[31m-            <div className="md:hidden">[m
+[31m-              <button[m
+[31m-                onClick={() => setMenuOpen(!menuOpen)}[m
+[31m-                className="relative p-2 text-gray-700 hover:text-blue-700 hover:bg-gray-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"[m
+[31m-              >[m
+[31m-                <div className="relative w-6 h-6">[m
+[31m-                  <span[m
+[31m-                    className={`absolute left-0 top-1 w-6 h-0.5 bg-current transform transition-all duration-300 ${[m
+[31m-                      menuOpen ? "rotate-45 translate-y-2" : ""[m
+[31m-                    }`}[m
+[31m-                  ></span>[m
+[31m-                  <span[m
+[31m-                    className={`absolute left-0 top-3 w-6 h-0.5 bg-current transition-all duration-300 ${[m
+[31m-                      menuOpen ? "opacity-0" : ""[m
+[31m-                    }`}[m
+[31m-                  ></span>[m
+[31m-                  <span[m
+[31m-                    className={`absolute left-0 top-5 w-6 h-0.5 bg-current transform transition-all duration-300 ${[m
+[31m-                      menuOpen ? "-rotate-45 -translate-y-2" : ""[m
+[31m-                    }`}[m
+[31m-                  ></span>[m
+[31m-                </div>[m
+[31m-                {isLoggedIn && notificationCount > 0 && ([m
+[31m-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">[m
+[31m-                    {notificationCount}[m
+[31m-                  </span>[m
+[31m-                )}[m
+[31m-              </button>[m
+[31m-            </div>[m
+[32m+[m[32m            {/* Mobile menu button - FIX THE CLICK HANDLER */}[m
+[32m+[m[32m            <button[m
+[32m+[m[32m              className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"[m
+[32m+[m[32m              onClick={() => {[m
+[32m+[m[32m                // ✅ If menu is open (showing X), close it[m
+[32m+[m[32m                // ✅ If menu is closed (showing hamburger), open it[m
+[32m+[m[32m                if (menuOpen) {[m
+[32m+[m[32m                  setMenuOpen(false); // Close menu when X is clicked[m
+[32m+[m[32m                } else {[m
+[32m+[m[32m                  setMenuOpen(true); // Open menu when hamburger is clicked[m
+[32m+[m[32m                }[m
+[32m+[m[32m              }}[m
+[32m+[m[32m              aria-label={menuOpen ? "Close menu" : "Open menu"}[m
+[32m+[m[32m            >[m
+[32m+[m[32m              {menuOpen ? ([m
+[32m+[m[32m                // X icon - clicking will close menu[m
+[32m+[m[32m                <svg[m
+[32m+[m[32m                  className="w-6 h-6"[m
+[32m+[m[32m                  fill="none"[m
+[32m+[m[32m                  stroke="currentColor"[m
+[32m+[m[32m                  viewBox="0 0 24 24"[m
+[32m+[m[32m                >[m
+[32m+[m[32m                  <path[m
+[32m+[m[32m                    strokeLinecap="round"[m
+[32m+[m[32m                    strokeLinejoin="round"[m
+[32m+[m[32m                    strokeWidth={2}[m
+[32m+[m[32m                    d="M6 18L18 6M6 6l12 12"[m
+[32m+[m[32m                  />[m
+[32m+[m[32m                </svg>[m
+[32m+[m[32m              ) : ([m
+[32m+[m[32m                // Hamburger icon - clicking will open menu[m
+[32m+[m[32m                <svg[m
+[32m+[m[32m                  className="w-6 h-6"[m
+[32m+[m[32m                  fill="none"[m
+[32m+[m[32m                  stroke="currentColor"[m
+[32m+[m[32m                  viewBox="0 0 24 24"[m
+[32m+[m[32m                >[m
+[32m+[m[32m                  <path[m
+[32m+[m[32m                    strokeLinecap="round"[m
+[32m+[m[32m                    strokeLinejoin="round"[m
+[32m+[m[32m                    strokeWidth={2}[m
+[32m+[m[32m                    d="M4 6h16M4 12h16M4 18h16"[m
+[32m+[m[32m                  />[m
+[32m+[m[32m                </svg>[m
+[32m+[m[32m              )}[m
+[32m+[m[32m            </button>[m
+           </div>[m
+         </div>[m
+ [m
