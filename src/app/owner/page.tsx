@@ -18,6 +18,7 @@ interface MaintenanceSettings {
   totalNotes?: number;
 }
 
+<<<<<<< HEAD
 export default function OwnerPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -31,6 +32,33 @@ export default function OwnerPage() {
 
   useEffect(() => {
     async function fetchSettings() {
+=======
+interface MaintenanceSettings {
+  isEnabled: boolean;
+  message?: string;
+  endTime?: string;
+}
+
+export default function OwnerDashboardPage() {
+  const { data: session, status } = useSession();
+  const [stats, setStats] = useState<Stats>({
+    totalUsers: 0,
+    totalAdmins: 0,
+    totalNotes: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [maintenance, setMaintenance] = useState<MaintenanceSettings>({
+    isEnabled: false,
+  });
+  const [customMessage, setCustomMessage] = useState("");
+  const [duration, setDuration] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    async function fetchStats() {
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
       try {
         const response = await fetch("/api/maintenance");
         if (response.ok) {
@@ -45,7 +73,19 @@ export default function OwnerPage() {
       }
     }
 
+    async function fetchMaintenanceSettings() {
+      try {
+        const response = await fetch("/api/maintenance");
+        const data = await response.json();
+        console.log("🔍 Fetched maintenance settings:", data); // ✅ Debug log
+        setMaintenance(data);
+      } catch (error) {
+        console.error("Failed to fetch maintenance settings:", error);
+      }
+    }
+
     if (session?.user.role === "OWNER") {
+<<<<<<< HEAD
       fetchSettings();
     }
   }, [session]);
@@ -54,10 +94,21 @@ export default function OwnerPage() {
     setLoading(true);
     setError("");
     setSuccess("");
+=======
+      fetchStats();
+      fetchMaintenanceSettings();
+    }
+  }, [session]);
+
+  const toggleMaintenance = async () => {
+    setIsLoading(true);
+    console.log("🔄 Toggling maintenance. Current state:", maintenance.isEnabled); // ✅ Debug log
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
 
     try {
       const response = await fetch("/api/maintenance", {
         method: "POST",
+<<<<<<< HEAD
         headers: {
           "Content-Type": "application/json",
         },
@@ -67,10 +118,18 @@ export default function OwnerPage() {
             message ||
             "We're currently performing scheduled maintenance. Please check back soon!",
           endTime: endTime ? new Date(endTime).toISOString() : null,
+=======
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isEnabled: !maintenance.isEnabled,
+          message: customMessage || undefined,
+          durationInMinutes: duration ? parseInt(duration) : undefined,
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
         }),
       });
 
       if (response.ok) {
+<<<<<<< HEAD
         const result = await response.json();
         setIsEnabled(result.isEnabled);
         setSuccess(
@@ -147,6 +206,29 @@ export default function OwnerPage() {
     );
   }
 
+=======
+        const updatedSettings = await response.json();
+        console.log("✅ Updated maintenance settings:", updatedSettings); // ✅ Debug log
+        setMaintenance(updatedSettings);
+
+        // ✅ Force a page reload to trigger middleware check
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        console.error("❌ Failed to update maintenance settings");
+        alert("Failed to update maintenance settings");
+      }
+    } catch (error) {
+      console.error("Error toggling maintenance:", error);
+      alert("Error updating maintenance settings");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (status === "loading" || loading) return <div>Loading...</div>;
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
   if (!session || session.user.role !== "OWNER") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -298,6 +380,7 @@ export default function OwnerPage() {
       {/* Maintenance Control Section */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
         <h2 className="text-2xl font-semibold text-slate-800 mb-6 flex items-center">
+<<<<<<< HEAD
           <svg
             className="w-6 h-6 text-amber-600 mr-2"
             fill="none"
@@ -316,6 +399,11 @@ export default function OwnerPage() {
               strokeWidth={2}
               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
             />
+=======
+          <svg className="w-6 h-6 text-amber-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
           </svg>
           Maintenance Mode
         </h2>
@@ -324,13 +412,18 @@ export default function OwnerPage() {
         <div className="mb-6">
           <div
             className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
+<<<<<<< HEAD
               isEnabled
+=======
+              maintenance.isEnabled
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
                 ? "bg-red-100 text-red-800 border border-red-200"
                 : "bg-green-100 text-green-800 border border-green-200"
             }`}
           >
             <div
               className={`w-2 h-2 rounded-full mr-2 ${
+<<<<<<< HEAD
                 isEnabled ? "bg-red-600" : "bg-green-600"
               }`}
             ></div>
@@ -340,6 +433,17 @@ export default function OwnerPage() {
           {endTime && (
             <p className="text-sm text-gray-600 mt-2">
               Auto-disable at: {new Date(endTime).toLocaleString()}
+=======
+                maintenance.isEnabled ? "bg-red-600" : "bg-green-600"
+              }`}
+            ></div>
+            {maintenance.isEnabled ? "Maintenance Active" : "Site Online"}
+          </div>
+
+          {maintenance.endTime && (
+            <p className="text-sm text-gray-600 mt-2">
+              Auto-disable at: {new Date(maintenance.endTime).toLocaleString()}
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
             </p>
           )}
         </div>
@@ -351,8 +455,13 @@ export default function OwnerPage() {
               Custom Message (Optional)
             </label>
             <textarea
+<<<<<<< HEAD
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+=======
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
               placeholder="Enter custom maintenance message..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               rows={3}
@@ -364,7 +473,12 @@ export default function OwnerPage() {
               Auto-Disable After (Optional)
             </label>
             <select
+<<<<<<< HEAD
               onChange={handleEndTimeChange}
+=======
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             >
               <option value="">Manual control only</option>
@@ -381,15 +495,26 @@ export default function OwnerPage() {
 
           {/* Toggle Button */}
           <button
+<<<<<<< HEAD
             onClick={handleToggleMaintenance}
             disabled={loading}
             className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
               isEnabled
+=======
+            onClick={toggleMaintenance}
+            disabled={isLoading}
+            className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
+              maintenance.isEnabled
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
                 ? "bg-green-600 hover:bg-green-700 text-white"
                 : "bg-red-600 hover:bg-red-700 text-white"
             }`}
           >
+<<<<<<< HEAD
             {loading ? (
+=======
+            {isLoading ? (
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
               <>
                 <svg
                   className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -413,6 +538,7 @@ export default function OwnerPage() {
                 </svg>
                 Updating...
               </>
+<<<<<<< HEAD
             ) : isEnabled ? (
               <>
                 <svg
@@ -427,11 +553,18 @@ export default function OwnerPage() {
                     strokeWidth={2}
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
+=======
+            ) : maintenance.isEnabled ? (
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
                 </svg>
                 Turn Off Maintenance
               </>
             ) : (
               <>
+<<<<<<< HEAD
                 <svg
                   className="w-5 h-5 mr-2"
                   fill="none"
@@ -450,6 +583,11 @@ export default function OwnerPage() {
                     strokeWidth={2}
                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                   />
+=======
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
                 </svg>
                 Enable Maintenance
               </>
@@ -457,6 +595,11 @@ export default function OwnerPage() {
           </button>
         </div>
       </div>
+<<<<<<< HEAD
+=======
+
+      {/* Other owner panel content... */}
+>>>>>>> c5d9fe5741220d5347dae26caafca2da7df4e769
     </div>
   );
 }
