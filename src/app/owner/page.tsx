@@ -3,16 +3,15 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import SystemStatus from '@/components/SystemStatus';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 
 interface MaintenanceSettings {
   id: string;
   isEnabled: boolean;
-  message: string;
+  message: string | null;
+  startTime: string | null;
   endTime: string | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface Stats {
@@ -24,394 +23,438 @@ interface Stats {
 export default function OwnerDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [settings, setSettings] = useState<MaintenanceSettings | null>(null);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalAdmins: 0,
     totalNotes: 0,
   });
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [maintenance, setMaintenance] = useState<MaintenanceSettings>({
+    id: "",
+    isEnabled: false,
+    message: "",
+    startTime: null,
+    endTime: null,
+  });
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [autoDisable, setAutoDisable] = useState("manual");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [environmentDisabled, setEnvironmentDisabled] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        // Fetch maintenance settings
-        const maintenanceResponse = await fetch("/api/maintenance");
-        if (maintenanceResponse.ok) {
-          const data = await maintenanceResponse.json();
-          setSettings(data);
-          setIsEnabled(data.isEnabled);
-          setMessage(data.message || "");
-          setEndTime(data.endTime || "");
-        }
+    if (status === "loading") return;
 
-        // ✅ Fetch stats separately
-        const statsResponse = await fetch("/api/owner/stats");
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setStats(statsData);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
+    if (!session || session.user?.role !== "OWNER") {
+      router.push("/");
+      return;
     }
 
-    if (session?.user.role === "OWNER") {
-      fetchData();
-    }
-  }, [session]);
+    fetchData();
+  }, [session, status, router]);
 
-  const handleToggleMaintenance = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
+  const fetchData = async () => {
     try {
-      const response = await fetch("/api/maintenance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          isEnabled: !isEnabled,
-          message:
-            message ||
-            "We're currently performing scheduled maintenance.",
-          endTime: endTime ? new Date(endTime).toISOString() : null,
-        }),
-      });
+      const [statsRes, maintenanceRes] = await Promise.all([
+        fetch("/api/owner/stats"),
+        fetch("/api/maintenance"),
+      ]);
 
-      if (response.ok) {
-        const result = await response.json();
-        setIsEnabled(result.isEnabled);
-        setSuccess(
-          `Maintenance ${result.isEnabled ? "enabled" : "disabled"}!`
-        );
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
 
-        // ✅ Broadcast change for immediate updates
-        if (typeof window !== "undefined") {
-          // Method 1: localStorage event
-          localStorage.setItem(
-            "maintenance-toggle",
-            JSON.stringify({
-              isEnabled: result.isEnabled,
-              timestamp: Date.now(),
-            })
-          );
-
-          // Method 2: BroadcastChannel
-          try {
-            const channel = new BroadcastChannel("maintenance-updates");
-            channel.postMessage({
-              type: "maintenance-toggled",
-              isEnabled: result.isEnabled,
-              timestamp: Date.now(),
-            });
-            channel.close();
-          } catch (e) {
-            console.log("BroadcastChannel not supported");
-          }
-
-          // Method 3: Force storage event in same tab
-          window.dispatchEvent(
-            new StorageEvent("storage", {
-              key: "maintenance-toggle",
-              newValue: JSON.stringify({
-                isEnabled: result.isEnabled,
-                timestamp: Date.now(),
-              }),
-            })
-          );
-        }
+      if (maintenanceRes.ok) {
+        const maintenanceData = await maintenanceRes.json();
+        setMaintenance(maintenanceData);
+        setMessage(maintenanceData.message || "");
+        setEndTime(maintenanceData.endTime || "");
+        setEnvironmentDisabled(maintenanceData.environmentDisabled || false);
       }
     } catch (error) {
-      setError("Failed to toggle maintenance");
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle auto-disable based on endTime selection
-  const handleEndTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const minutes = e.target.value;
-    if (minutes) {
-      const futureTime = new Date();
-      futureTime.setMinutes(futureTime.getMinutes() + parseInt(minutes));
-      setEndTime(futureTime.toISOString());
+  const handleMaintenanceToggle = () => {
+    if (!maintenance.isEnabled && environmentDisabled) {
+      // Show warning dialog when trying to enable maintenance while environment disabled
+      setShowConfirmDialog(true);
     } else {
-      setEndTime("");
+      // Direct toggle for normal operation or disabling maintenance
+      performMaintenanceToggle();
     }
   };
 
-  const maintenanceEnabled = process.env.NEXT_PUBLIC_DISABLE_MAINTENANCE_SYSTEM !== 'true';
+  const performMaintenanceToggle = async () => {
+    setIsToggling(true);
+    try {
+      const payload = {
+        isEnabled: !maintenance.isEnabled,
+        message:
+          message ||
+          "We're currently performing scheduled maintenance. Please check back soon!",
+        endTime:
+          autoDisable === "scheduled" && endTime
+            ? new Date(endTime).toISOString()
+            : null,
+      };
 
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+      const response = await fetch("/api/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-  if (!session || session.user.role !== "OWNER") {
+      if (response.ok) {
+        const data = await response.json();
+        setMaintenance(data);
+
+        // Update storage event
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("maintenance-toggle", Date.now().toString());
+          window.dispatchEvent(
+            new StorageEvent("storage", {
+              key: "maintenance-toggle",
+              newValue: Date.now().toString(),
+            })
+          );
+        }
+
+        // Close dialog if it was open
+        setShowConfirmDialog(false);
+      } else {
+        console.error("Failed to toggle maintenance:", response.status);
+      }
+    } catch (error) {
+      console.error("Error toggling maintenance:", error);
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  if (status === "loading" || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="text-red-600 text-xl font-semibold mb-4">
-            Access Restricted
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-300 rounded w-1/4 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gray-300 h-32 rounded-xl"></div>
+              <div className="bg-gray-300 h-32 rounded-xl"></div>
+              <div className="bg-gray-300 h-32 rounded-xl"></div>
+            </div>
           </div>
-          <p className="text-gray-600">
-            You don't have permission to access this page.
-          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Add this at the top */}
-      <SystemStatus />
-      
-      {/* Your existing components */}
-      {/* <MaintenanceControls /> */}
-      {/* <StatsCards /> */}
-      {/* etc. */}
-
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-        <p className="text-gray-600">Manage your law firm's system</p>
-      </div>
-
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-          {success}
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-          {error}
-        </div>
-      )}
-
-      {/* ✅ Updated Stats Cards with Real Data */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
-          <h3 className="text-lg font-semibold">Total Users</h3>
-          <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
-        </div>
-        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
-          <h3 className="text-lg font-semibold">Total Admins</h3>
-          <p className="text-3xl font-bold">{stats?.totalAdmins || 0}</p>
-        </div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
-          <h3 className="text-lg font-semibold">Total Notes</h3>
-          <p className="text-3xl font-bold">{stats?.totalNotes || 0}</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+            <p className="mt-2 text-gray-600">Manage your law firm's system</p>
+          </div>
         </div>
       </div>
 
-      {/* Management Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link
-          href="/owner/admins"
-          className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border-l-4 border-blue-500"
-        >
-          <div className="flex items-center">
-            <div className="bg-blue-100 p-3 rounded-full">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Environment Status Alert - Make it dynamic */}
+        <div className="mb-6">
+          {maintenance.isEnabled ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 text-red-400 mr-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-red-800">
+                  Maintenance mode active!
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 text-green-400 mr-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-green-800">
+                  Site is online and running normally
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* System Status Card */}
+        <SystemStatus />
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-blue-500 text-white p-6 rounded-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium opacity-90">Total Users</h3>
+                <p className="text-3xl font-bold">{stats.totalUsers}</p>
+              </div>
+              <div className="p-3 bg-blue-600 rounded-lg">
+                <svg
+                  className="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-green-500 text-white p-6 rounded-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium opacity-90">Total Admins</h3>
+                <p className="text-3xl font-bold">{stats.totalAdmins}</p>
+              </div>
+              <div className="p-3 bg-green-600 rounded-lg">
+                <svg
+                  className="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-purple-500 text-white p-6 rounded-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium opacity-90">Total Notes</h3>
+                <p className="text-3xl font-bold">{stats.totalNotes}</p>
+              </div>
+              <div className="p-3 bg-purple-600 rounded-lg">
+                <svg
+                  className="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm5 3a1 1 0 000 2h6a1 1 0 100-2H9zm0 4a1 1 0 100 2h6a1 1 0 100-2H9z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Management Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <div className="flex items-center mb-4">
+              <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                <svg
+                  className="w-6 h-6 text-blue-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Manage Admins
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Add, view, and manage admin users
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <div className="flex items-center mb-4">
+              <div className="p-2 bg-green-100 rounded-lg mr-3">
+                <svg
+                  className="w-6 h-6 text-green-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Manage Users
+                </h3>
+                <p className="text-sm text-gray-600">
+                  View and manage regular users
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <div className="flex items-center mb-4">
+              <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                <svg
+                  className="w-6 h-6 text-purple-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM15 4a1 1 0 10-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  System Settings
+                </h3>
+                <p className="text-sm text-gray-600">Configure firm settings</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Maintenance Mode Section */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div className="flex items-center mb-6">
+            <div className="p-2 bg-orange-100 rounded-lg mr-3">
               <svg
-                className="w-6 h-6 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+                className="w-6 h-6 text-orange-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
               >
                 <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
                 />
               </svg>
             </div>
-            <div className="ml-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                Manage Admins
-              </h3>
-              <p className="text-gray-600">Add, view, and manage admin users</p>
-            </div>
+            <h2 className="text-xl font-bold text-gray-900">Maintenance Mode</h2>
           </div>
-        </Link>
 
-        <Link
-          href="/owner/users"
-          className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border-l-4 border-green-500"
-        >
-          <div className="flex items-center">
-            <div className="bg-green-100 p-3 rounded-full">
-              <svg
-                className="w-6 h-6 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                Manage Users
-              </h3>
-              <p className="text-gray-600">View and manage regular users</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          href="/owner/settings"
-          className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border-l-4 border-purple-500"
-        >
-          <div className="flex items-center">
-            <div className="bg-purple-100 p-3 rounded-full">
-              <svg
-                className="w-6 h-6 text-purple-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                System Settings
-              </h3>
-              <p className="text-gray-600">Configure firm settings</p>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Maintenance Control Section */}
-      {maintenanceEnabled && (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
-          <h2 className="text-2xl font-semibold text-slate-800 mb-6 flex items-center">
-            <svg
-              className="w-6 h-6 text-amber-600 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            Maintenance Mode
-          </h2>
-
-          {/* Current Status */}
+          {/* Status Indicator - Make it dynamic */}
           <div className="mb-6">
-            <div
-              className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
-                isEnabled
-                  ? "bg-red-100 text-red-800 border border-red-200"
-                  : "bg-green-100 text-green-800 border border-green-200"
-              }`}
-            >
-              <div
-                className={`w-2 h-2 rounded-full mr-2 ${
-                  isEnabled ? "bg-red-600" : "bg-green-600"
-                }`}
-              ></div>
-              {isEnabled ? "Maintenance Active" : "Site Online"}
+            <div className="flex items-center">
+              {maintenance.isEnabled ? (
+                <>
+                  <span className="inline-block w-3 h-3 bg-red-400 rounded-full mr-3 animate-pulse"></span>
+                  <span className="text-lg font-medium text-red-600">
+                    Maintenance Active
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="inline-block w-3 h-3 bg-green-400 rounded-full mr-3"></span>
+                  <span className="text-lg font-medium text-green-600">
+                    Site Online
+                  </span>
+                </>
+              )}
             </div>
-
-            {endTime && (
-              <p className="text-sm text-gray-600 mt-2">
-                Auto-disable at: {new Date(endTime).toLocaleString()}
-              </p>
-            )}
           </div>
 
-          {/* Controls */}
-          <div className="space-y-4">
+          {/* Form */}
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="message"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Custom Message (Optional)
               </label>
               <textarea
+                id="message"
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Enter custom maintenance message..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                rows={3}
+                placeholder="We're currently performing scheduled maintenance. Please check back soon!"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="autoDisable"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Auto-Disable After (Optional)
               </label>
               <select
-                onChange={handleEndTimeChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                id="autoDisable"
+                value={autoDisable}
+                onChange={(e) => setAutoDisable(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Manual control only</option>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="120">2 hours</option>
-                <option value="180">3 hours</option>
-                <option value="360">6 hours</option>
-                <option value="720">12 hours</option>
-                <option value="1440">24 hours</option>
+                <option value="manual">Manual control only</option>
+                <option value="scheduled">Set scheduled end time</option>
               </select>
             </div>
 
-            {/* Toggle Button */}
+            {autoDisable === "scheduled" && (
+              <div>
+                <label
+                  htmlFor="endTime"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  End Time
+                </label>
+                <input
+                  type="datetime-local"
+                  id="endTime"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {/* Updated Button with Warning Logic */}
             <button
-              onClick={handleToggleMaintenance}
-              disabled={loading}
-              className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
-                isEnabled
-                  ? "bg-green-600 hover:bg-green-700 text-white"
-                  : "bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleMaintenanceToggle}
+              disabled={loading || isToggling}
+              className={`w-full font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center ${
+                maintenance.isEnabled
+                  ? "bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white"
+                  : "bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white"
               }`}
             >
-              {loading ? (
-                <>
+              {isToggling ? (
+                <div className="flex items-center">
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
@@ -429,55 +472,61 @@ export default function OwnerDashboard() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Updating...
-                </>
-              ) : isEnabled ? (
-                <>
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Turn Off Maintenance
-                </>
+                  {maintenance.isEnabled ? "Disabling..." : "Enabling..."}
+                </div>
               ) : (
                 <>
                   <svg
                     className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
+                    {maintenance.isEnabled ? (
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    ) : (
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    )}
                   </svg>
-                  Enable Maintenance
+                  {maintenance.isEnabled ? "Disable Maintenance" : "Enable Maintenance"}
                 </>
               )}
             </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Other owner panel content... */}
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={performMaintenanceToggle}
+        loading={isToggling}
+        type="warning"
+        title="⚠️ Maintenance System Disabled"
+        message={`The maintenance system is currently disabled via environment variable (DISABLE_MAINTENANCE_CHECKING=true).
+
+Even if you enable maintenance mode here, it will NOT work because:
+• The environment variable overrides all maintenance functionality
+• Users will continue to access the site normally
+• Maintenance redirects will be bypassed
+
+To make maintenance work:
+1. Remove DISABLE_MAINTENANCE_CHECKING from .env.local
+2. Restart the server
+3. Then enable maintenance mode
+
+Do you still want to enable maintenance mode? (It won't actually work until environment is changed)`}
+        confirmText="Enable Anyway"
+        cancelText="Cancel"
+      />
     </div>
   );
 }

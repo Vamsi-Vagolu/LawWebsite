@@ -12,11 +12,20 @@ export default function SystemStatus() {
 
   const checkEnvironmentStatus = async () => {
     try {
-      // Simple check - just see if maintenance API works
+      // Check if maintenance API returns environment status
       const response = await fetch('/api/maintenance');
-      setEnvironmentDisabled(!response.ok && response.status === 503); // Could indicate disabled
+      
+      if (response.ok) {
+        const data = await response.json();
+        // If we get a specific response indicating environment override
+        setEnvironmentDisabled(data.environmentDisabled || false);
+      } else {
+        // If API fails, might indicate environment disabled
+        setEnvironmentDisabled(response.status === 503);
+      }
     } catch (error) {
-      setEnvironmentDisabled(true); // Assume disabled if can't reach
+      // If can't reach API, assume environment disabled
+      setEnvironmentDisabled(true);
     } finally {
       setLoading(false);
     }
@@ -33,8 +42,6 @@ export default function SystemStatus() {
     );
   }
 
-  const isDisabled = process.env.NEXT_PUBLIC_MAINTENANCE_DISABLED === 'true';
-
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
       <h3 className="text-xl font-semibold text-slate-800 mb-4">
@@ -42,9 +49,10 @@ export default function SystemStatus() {
       </h3>
       
       <div className="space-y-4">
-        {environmentDisabled || isDisabled ? (
+        {environmentDisabled ? (
+          // Environment Disabled State
           <div className="flex items-center gap-3">
-            <span className="inline-block w-3 h-3 bg-yellow-400 rounded-full"></span>
+            <span className="inline-block w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
               Environment Disabled
             </span>
@@ -53,6 +61,7 @@ export default function SystemStatus() {
             </div>
           </div>
         ) : (
+          // System Active State  
           <div className="flex items-center gap-3">
             <span className="inline-block w-3 h-3 bg-green-400 rounded-full"></span>
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
@@ -64,7 +73,7 @@ export default function SystemStatus() {
           </div>
         )}
 
-        {(environmentDisabled || isDisabled) && (
+        {environmentDisabled && (
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-yellow-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
