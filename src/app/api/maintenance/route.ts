@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 export async function GET() {
   try {
     let maintenance = await prisma.maintenanceSettings.findFirst({
       orderBy: { updatedAt: 'desc' }
     });
-    
+
     if (!maintenance) {
       maintenance = await prisma.maintenanceSettings.create({
         data: {
@@ -22,11 +20,7 @@ export async function GET() {
 
     return NextResponse.json(maintenance);
   } catch (error) {
-    console.error('Error fetching maintenance:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch maintenance settings' },
-      { status: 500 }
-    );
+    return NextResponse.json({ isEnabled: false, message: "Maintenance check failed" });
   }
 }
 
@@ -63,10 +57,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(maintenance);
   } catch (error) {
-    console.error('Error updating maintenance:', error);
-    return NextResponse.json(
-      { error: 'Failed to update maintenance settings' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
   }
 }

@@ -10,32 +10,20 @@ export default function MaintenanceListener() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Don't redirect owners
-    if (session?.user?.role === 'OWNER') {
-      return;
-    }
+    if (session?.user?.role === 'OWNER') return;
 
     let pollInterval: NodeJS.Timeout;
 
     const checkMaintenance = async () => {
       try {
-        // ✅ Use the same API endpoint as middleware
         const response = await fetch('/api/maintenance-check');
         if (response.ok) {
           const data = await response.json();
           
-          console.log('🔍 Maintenance status:', data.isEnabled);
-          console.log('🔍 Current pathname:', pathname);
-          
-          // Redirect TO maintenance when enabled
           if (data.isEnabled && pathname !== '/maintenance') {
-            console.log('🚧 Redirecting TO maintenance');
             router.push('/maintenance');
             router.refresh();
-          } 
-          // Redirect FROM maintenance when disabled
-          else if (!data.isEnabled && pathname === '/maintenance') {
-            console.log('✅ Redirecting FROM maintenance');
+          } else if (!data.isEnabled && pathname === '/maintenance') {
             router.push('/');
             router.refresh();
           }
@@ -45,15 +33,14 @@ export default function MaintenanceListener() {
       }
     };
 
-    // Check immediately and every 3 seconds
+    // ✅ Reduced polling: Check every 30 seconds instead of 3 seconds
     checkMaintenance();
-    pollInterval = setInterval(checkMaintenance, 3000);
+    pollInterval = setInterval(checkMaintenance, 30000); // 30 seconds
 
-    // Listen for storage/broadcast changes
+    // ✅ Still use instant updates for same-user actions
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'maintenance-toggle') {
-        console.log('📢 Storage change detected');
-        checkMaintenance(); // Recheck immediately
+        checkMaintenance(); // Instant check on toggle
       }
     };
 

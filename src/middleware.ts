@@ -21,28 +21,22 @@ export async function middleware(request: NextRequest) {
       secret: process.env.NEXTAUTH_SECRET 
     });
 
-    // Get maintenance status by calling API
+    // Simple maintenance check
     let isMaintenanceEnabled = false;
     
     try {
       const baseUrl = request.nextUrl.origin;
-      const response = await fetch(`${baseUrl}/api/maintenance-check`, {
-        headers: {
-          'x-middleware': 'true'
-        }
-      });
+      const response = await fetch(`${baseUrl}/api/maintenance`);
       
       if (response.ok) {
         const data = await response.json();
         isMaintenanceEnabled = data.isEnabled;
       }
     } catch (fetchError) {
-      console.log('Maintenance API call failed, assuming maintenance is off');
       isMaintenanceEnabled = false;
     }
 
     if (isMaintenanceEnabled) {
-      // Allow owners to access any page during maintenance
       if (token?.role === 'OWNER') {
         return NextResponse.next();
       }
@@ -58,7 +52,6 @@ export async function middleware(request: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    console.error('Middleware error:', error);
     return NextResponse.next();
   }
 }
@@ -66,13 +59,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)',],
 };
-
-// In your page.tsx
-async function getMaintenanceSettings() {
-  // ✅ OWNER CHECK - Smart redirect for owners
-  if (session?.user?.role === 'OWNER') {
-    redirect('/owner');
-    return;
-  }
-  // ... rest of function
-}
