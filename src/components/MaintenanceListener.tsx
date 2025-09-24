@@ -2,99 +2,68 @@
 
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function MaintenanceListener() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // ✅ Skip maintenance redirects for OWNER role
+    // Don't redirect owners
     if (session?.user?.role === 'OWNER') {
-      console.log('👑 Owner detected - skipping maintenance redirects');
       return;
     }
 
-    // ✅ Listen for maintenance changes and refresh page
-    const handleMaintenanceChange = () => {
-      console.log('🔄 Maintenance status changed - refreshing page...');
-      
-      // Small delay to ensure server state is updated
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    };
+    let pollInterval: NodeJS.Timeout;
 
-    // ✅ Listen for localStorage changes (cross-tab)
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'maintenance-toggle') {
-        handleMaintenanceChange();
-      }
-    };
-
-    // ✅ Listen for BroadcastChannel messages
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel('maintenance-updates');
-      channel.addEventListener('message', (event) => {
-        if (event.data.type === 'maintenance-toggled') {
-          handleMaintenanceChange();
-        }
-      });
-    } catch (e) {
-      console.log('BroadcastChannel not supported');
-    }
-
-    // ✅ Polling fallback - check maintenance status every 15 seconds
-    const pollMaintenanceStatus = async () => {
+    const checkMaintenance = async () => {
       try {
-        const response = await fetch('/api/maintenance-check', {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        });
-        
+        // ✅ Use the same API endpoint as middleware
+        const response = await fetch('/api/maintenance-check');
         if (response.ok) {
           const data = await response.json();
-          const currentPath = window.location.pathname;
           
-          // If maintenance is enabled and we're not on maintenance page
-          if (data.isEnabled && currentPath !== '/maintenance') {
-            window.location.href = '/maintenance';
-          }
-          // If maintenance is disabled and we're on maintenance page
-          else if (!data.isEnabled && currentPath === '/maintenance') {
-            window.location.href = '/';
+          console.log('🔍 Maintenance status:', data.isEnabled);
+          console.log('🔍 Current pathname:', pathname);
+          
+          // Redirect TO maintenance when enabled
+          if (data.isEnabled && pathname !== '/maintenance') {
+            console.log('🚧 Redirecting TO maintenance');
+            router.push('/maintenance');
+            router.refresh();
+          } 
+          // Redirect FROM maintenance when disabled
+          else if (!data.isEnabled && pathname === '/maintenance') {
+            console.log('✅ Redirecting FROM maintenance');
+            router.push('/');
+            router.refresh();
           }
         }
       } catch (error) {
-        console.error('Error polling maintenance status:', error);
+        console.error('Error checking maintenance:', error);
       }
     };
 
-    // Start polling
-    const pollInterval = setInterval(pollMaintenanceStatus, 15000);
+    // Check immediately and every 3 seconds
+    checkMaintenance();
+    pollInterval = setInterval(checkMaintenance, 3000);
 
-    // Add event listeners
+    // Listen for storage/broadcast changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'maintenance-toggle') {
+        console.log('📢 Storage change detected');
+        checkMaintenance(); // Recheck immediately
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
 
-    // ✅ Listen for focus events (when user returns to tab)
-    const handleFocus = () => {
-      setTimeout(pollMaintenanceStatus, 500);
-    };
-    
-    window.addEventListener('focus', handleFocus);
-
-    // Cleanup
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
       clearInterval(pollInterval);
-      
-      if (channel) {
-        channel.close();
-      }
+      window.removeEventListener('storage', handleStorageChange);
     };
-  }, [session]); // ✅ Add session as dependency
+  }, [session, router, pathname]);
 
-  return null; // This component doesn't render anything
+  return null;
 }

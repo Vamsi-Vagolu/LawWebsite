@@ -39,7 +39,7 @@ export default function OwnerPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // ✅ Fetch maintenance settings
+        // Fetch maintenance settings
         const maintenanceResponse = await fetch("/api/maintenance");
         if (maintenanceResponse.ok) {
           const data = await maintenanceResponse.json();
@@ -49,7 +49,7 @@ export default function OwnerPage() {
           setEndTime(data.endTime || "");
         }
 
-        // ✅ Fetch real stats separately
+        // ✅ Fetch stats separately
         const statsResponse = await fetch("/api/owner/stats");
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
@@ -73,14 +73,12 @@ export default function OwnerPage() {
     try {
       const response = await fetch("/api/maintenance", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           isEnabled: !isEnabled,
           message:
             message ||
-            "We're currently performing scheduled maintenance. Please check back soon!",
+            "We're currently performing scheduled maintenance.",
           endTime: endTime ? new Date(endTime).toISOString() : null,
         }),
       });
@@ -89,53 +87,49 @@ export default function OwnerPage() {
         const result = await response.json();
         setIsEnabled(result.isEnabled);
         setSuccess(
-          `Maintenance ${result.isEnabled ? "enabled" : "disabled"} successfully!`
+          `Maintenance ${result.isEnabled ? "enabled" : "disabled"}!`
         );
 
-        // Broadcast maintenance change to all users immediately
-        await broadcastMaintenanceChange(result.isEnabled);
+        // ✅ Broadcast change for immediate updates
+        if (typeof window !== "undefined") {
+          // Method 1: localStorage event
+          localStorage.setItem(
+            "maintenance-toggle",
+            JSON.stringify({
+              isEnabled: result.isEnabled,
+              timestamp: Date.now(),
+            })
+          );
 
-        // Don't reload owner page - just update state
-        // setTimeout(() => {
-        //   window.location.reload();
-        // }, 1500);
-      } else {
-        setError("Failed to toggle maintenance mode");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      setError("An error occurred while toggling maintenance mode");
-    } finally {
-      setLoading(false);
-    }
-  };
+          // Method 2: BroadcastChannel
+          try {
+            const channel = new BroadcastChannel("maintenance-updates");
+            channel.postMessage({
+              type: "maintenance-toggled",
+              isEnabled: result.isEnabled,
+              timestamp: Date.now(),
+            });
+            channel.close();
+          } catch (e) {
+            console.log("BroadcastChannel not supported");
+          }
 
-  // Enhanced function to broadcast maintenance changes
-  const broadcastMaintenanceChange = async (newMaintenanceState: boolean) => {
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "maintenance-toggle",
-          JSON.stringify({
-            isEnabled: newMaintenanceState,
-            timestamp: Date.now(),
-          })
-        );
-
-        try {
-          const channel = new BroadcastChannel("maintenance-updates");
-          channel.postMessage({
-            type: "maintenance-toggled",
-            isEnabled: newMaintenanceState,
-            timestamp: Date.now(),
-          });
-          channel.close();
-        } catch (e) {
-          console.log("BroadcastChannel not supported");
+          // Method 3: Force storage event in same tab
+          window.dispatchEvent(
+            new StorageEvent("storage", {
+              key: "maintenance-toggle",
+              newValue: JSON.stringify({
+                isEnabled: result.isEnabled,
+                timestamp: Date.now(),
+              }),
+            })
+          );
         }
       }
     } catch (error) {
-      console.error("Error broadcasting maintenance change:", error);
+      setError("Failed to toggle maintenance");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -199,15 +193,15 @@ export default function OwnerPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
           <h3 className="text-lg font-semibold">Total Users</h3>
-          <p className="text-3xl font-bold">{stats.totalUsers}</p>
+          <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
         </div>
         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
           <h3 className="text-lg font-semibold">Total Admins</h3>
-          <p className="text-3xl font-bold">{stats.totalAdmins}</p>
+          <p className="text-3xl font-bold">{stats?.totalAdmins || 0}</p>
         </div>
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
           <h3 className="text-lg font-semibold">Total Notes</h3>
-          <p className="text-3xl font-bold">{stats.totalNotes}</p>
+          <p className="text-3xl font-bold">{stats?.totalNotes || 0}</p>
         </div>
       </div>
 

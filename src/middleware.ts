@@ -6,58 +6,73 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  console.log('🔍 Middleware checking:', pathname);
-
-  // Skip maintenance check for specific paths
   if (
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/maintenance') ||
     pathname.includes('.')
   ) {
     return NextResponse.next();
   }
 
   try {
-    const maintenanceUrl = new URL('/api/maintenance-check', request.url);
-    const response = await fetch(maintenanceUrl.toString());
+    const token = await getToken({ 
+      req: request, 
+      secret: process.env.NEXTAUTH_SECRET 
+    });
+
+    // Get maintenance status by calling API
+    let isMaintenanceEnabled = false;
     
-    if (response.ok) {
-      const { isEnabled } = await response.json();
-      console.log('🔍 Maintenance status:', isEnabled);
-      
-      if (isEnabled) {
-        console.log('🚧 MAINTENANCE ACTIVE - Checking user');
-        
-        const token = await getToken({ 
-          req: request, 
-          secret: process.env.NEXTAUTH_SECRET 
-        });
-        
-        console.log('👤 User email:', token?.email);
-        
-        // ✅ Only allow specific owner email
-        const isOwner = token?.email === 'v.vamsi3666@gmail.com';
-        console.log('👑 Is owner?', isOwner);
-
-        if (!isOwner) {
-          console.log('🚧 REDIRECTING TO MAINTENANCE');
-          return NextResponse.redirect(new URL('/maintenance', request.url));
-        } else {
-          console.log('✅ OWNER BYPASS - Allowing access');
+    try {
+      const baseUrl = request.nextUrl.origin;
+      const response = await fetch(`${baseUrl}/api/maintenance-check`, {
+        headers: {
+          'x-middleware': 'true'
         }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        isMaintenanceEnabled = data.isEnabled;
       }
+    } catch (fetchError) {
+      console.log('Maintenance API call failed, assuming maintenance is off');
+      isMaintenanceEnabled = false;
     }
-  } catch (error) {
-    console.error('❌ Middleware error:', error);
-  }
 
-  return NextResponse.next();
+    if (isMaintenanceEnabled) {
+      // Allow owners to access any page during maintenance
+      if (token?.role === 'OWNER') {
+        return NextResponse.next();
+      }
+      if (pathname === '/maintenance') {
+        return NextResponse.next();
+      }
+      return NextResponse.redirect(new URL('/maintenance', request.url));
+    }
+
+    if (!isMaintenanceEnabled && pathname === '/maintenance') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    return NextResponse.next();
+  }
 }
 
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|maintenance).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)',],
 };
+
+// In your page.tsx
+async function getMaintenanceSettings() {
+  // ✅ OWNER CHECK - Smart redirect for owners
+  if (session?.user?.role === 'OWNER') {
+    redirect('/owner');
+    return;
+  }
+  // ... rest of function
+}
