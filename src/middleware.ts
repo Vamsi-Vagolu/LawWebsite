@@ -15,13 +15,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ✅ ONLY CHECK: Environment Variable (Simple & Fast)
+  if (process.env.DISABLE_MAINTENANCE_CHECKING === 'true') {
+    return NextResponse.next(); // Zero overhead - skip everything
+  }
+
   try {
     const token = await getToken({ 
       req: request, 
       secret: process.env.NEXTAUTH_SECRET 
     });
 
-    // Simple maintenance check
+    // ✅ DIRECT MAINTENANCE CHECK (No system status complexity)
     let isMaintenanceEnabled = false;
     
     try {
@@ -33,17 +38,20 @@ export async function middleware(request: NextRequest) {
         isMaintenanceEnabled = data.isEnabled;
       }
     } catch (fetchError) {
-      isMaintenanceEnabled = false;
+      return NextResponse.next();
     }
 
+    // ✅ SIMPLE MAINTENANCE LOGIC
     if (isMaintenanceEnabled) {
       if (token?.role === 'OWNER') {
         return NextResponse.next();
       }
-      if (pathname === '/maintenance') {
-        return NextResponse.next();
+      
+      if (pathname !== '/maintenance') {
+        return NextResponse.redirect(new URL('/maintenance', request.url));
       }
-      return NextResponse.redirect(new URL('/maintenance', request.url));
+      
+      return NextResponse.next();
     }
 
     if (!isMaintenanceEnabled && pathname === '/maintenance') {

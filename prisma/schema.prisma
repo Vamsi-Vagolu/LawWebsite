@@ -150,13 +150,15 @@ model UserFavoriteNote {
 }
 
 model MaintenanceSettings {
-  id        String   @id @default(cuid())
-  isEnabled Boolean  @default(false)
+  id        String    @id @default("1")
+  isEnabled Boolean   @default(false)
   message   String?
   startTime DateTime?
   endTime   DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("maintenance_settings")
 }
 
 model MaintenanceMode {

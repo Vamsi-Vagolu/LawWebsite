@@ -10,6 +10,11 @@ export default function MaintenanceListener() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Skip all maintenance logic
+    if (process.env.NEXT_PUBLIC_DISABLE_MAINTENANCE_SYSTEM === 'true') {
+      return;
+    }
+
     if (session?.user?.role === 'OWNER') return;
 
     let pollInterval: number | null = null;
