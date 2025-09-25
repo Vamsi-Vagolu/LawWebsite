@@ -22,7 +22,7 @@ async function main() {
     const aibeTest = await prisma.test.create({
       data: {
         title: "AIBE XVIII",
-        description: "Original All India Bar Examination XVII practice test.",
+        description: "Original All India Bar Examination XVIII practice test.",
         category: "AIBE",
         difficulty: "HARD",
         timeLimit: 180, // 3 hours for testing
