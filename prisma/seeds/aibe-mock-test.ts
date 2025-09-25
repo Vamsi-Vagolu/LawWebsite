@@ -8,118 +8,144 @@ export async function seedAIBETest() {
     const aibeTest = await prisma.test.create({
       data: {
         title: "AIBE-XVIII Mock Test - Set Code B",
-        description: "All India Bar Examination practice test with 100 questions covering Criminal Law, Constitutional Law, Civil Procedure, Evidence Act, and other legal subjects. Based on previous year question paper.",
+        description: "All India Bar Examination practice test with 100 questions covering Criminal Law, Constitutional Law, Civil Procedure, Evidence Act, and other legal subjects. Based on provided question set.",
         category: "AIBE - All India Bar Examination",
         difficulty: "HARD",
         timeLimit: 180, // 3 hours
         totalQuestions: 100,
-        passingScore: 40.0, // 40% as per AIBE standards
+        passingScore: 40.0,
         isPublished: true,
-        createdBy: "system", // You'll need to replace with actual admin user ID
+        createdBy: "system",
       }
     });
 
-    // Create all 100 questions with correct answers
     const questions = [
-      {
-        questionNumber: 1,
-        question: "Which of the following is incorrect with respect to diary of proceedings in investigation as per the Code of Criminal Procedure, 1973?",
-        options: {
-          A: "The statements of witnesses recorded during investigation shall be inserted in the diary.",
-          B: "The diary shall be duly paginated.",
-          C: "The diary may be used as evidence.",
-          D: "Can be used by the police officers to refresh memory."
-        },
-        correctAnswer: "C"
-      },
-      {
-        questionNumber: 2,
-        question: "In which of the following cases manner of committing offence is not required to be mentioned in the charge as per the Code of Criminal Procedure, 1973?",
-        options: {
-          A: "A is accused of the theft of a certain article at a certain time and place.",
-          B: "A is accused of cheating B at a given time and place.",
-          C: "A is accused of disobeying a direction of the law with intent to save B from punishment.",
-          D: "A is accused of giving false evidence at a given time and place."
-        },
-        correctAnswer: "A"
-      },
-      {
-        questionNumber: 3,
-        question: "Which of the following offences may be tried summarily as per the Code of Criminal Procedure, 1973?",
-        options: {
-          A: "Offence under Section 454 of the IPC.",
-          B: "Offence under Section 504 of the IPC.",
-          C: "Offence punishable with imprisonment for a term not exceeding two years.",
-          D: "Offence punishable with life imprisonment."
-        },
-        correctAnswer: "C"
-      },
-      {
-        questionNumber: 4,
-        question: "Which of the following Section of the Code of Criminal Procedure, 1973 provides for reference to High Court?",
-        options: {
-          A: "Section 275",
-          B: "Section 325", 
-          C: "Section 383",
-          D: "Section 395"
-        },
-        correctAnswer: "D"
-      },
-      {
-        questionNumber: 5,
-        question: "A person accused of the following offence may not be granted bail under Section 438 of the Code of Criminal Procedure, 1973: i. Accused of offence under Section 376AB of the IPC; ii. Accused of offence under Section 376DA of the IPC; iii. Accused of offence under Section 376DB of the IPC;",
-        options: {
-          A: "i & ii",
-          B: "ii & iii",
-          C: "iii & i", 
-          D: "i, ii & iii"
-        },
-        correctAnswer: "D"
-      },
-      {
-        questionNumber: 6,
-        question: "Which of the following act if done by any Magistrate, even in good faith without being empowered, shall vitiate the proceedings as per the Code of Criminal Procedure, 1973?",
-        options: {
-          A: "Tender a pardon under Section 306 of CrPC.",
-          B: "Recall a case and try it under Section 410 of the CrPC.",
-          C: "Attaches property under Section 83 of the CrPC.",
-          D: "Hold an inquest under Section 176 of the CrPC."
-        },
-        correctAnswer: "C"
-      }
-      // ... I need to process all 100 questions from your images
+      { questionNumber: 1, question: "Which of the following is incorrect with respect to diary of proceedings in investigation as per the Code of Criminal Procedure, 1973?", options: { A: "The statements of witnesses recorded during investigation shall be inserted in the diary.", B: "The diary shall be duly paginated.", C: "The diary may be used as evidence.", D: "Can be used by the police officers to refresh memory." }, correctAnswer: "C" },
+      { questionNumber: 2, question: "In which of the following cases manner of committing offence is not required to be mentioned in the charge as per the Code of Criminal Procedure, 1973?", options: { A: "A is accused of the theft of a certain article at a certain time and place.", B: "A is accused of cheating B at a given time and place.", C: "A is accused of disobeying a direction of the law with intent to save B from punishment.", D: "A is accused of giving false evidence at a given time and place." }, correctAnswer: "A" },
+      { questionNumber: 3, question: "Which of the following offences may be tried summarily as per the Code of Criminal Procedure, 1973?", options: { A: "Offence under Section 454 of the IPC.", B: "Offence under Section 504 of the IPC.", C: "Offence punishable with imprisonment for a term not exceeding two years.", D: "Offence punishable with life imprisonment." }, correctAnswer: "C" },
+      { questionNumber: 4, question: "Which of the following Section of the Code of Criminal Procedure, 1973 provides for reference to High Court?", options: { A: "Section 275", B: "Section 325", C: "Section 383", D: "Section 395" }, correctAnswer: "D" },
+      { questionNumber: 5, question: "A person accused of the following offence may not be granted bail under Section 438 of the Code of Criminal Procedure, 1973: i. Accused of offence under Section 376AB of the IPC, ii. Accused of offence under Section 376DA of the IPC, iii. Accused of offence under Section 376DB of the IPC.", options: { A: "i & ii", B: "ii & iii", C: "iii & i", D: "i, ii & iii" }, correctAnswer: "D" },
+      { questionNumber: 6, question: "Which of the following act if done by any Magistrate, even in good faith without being empowered, shall vitiate the proceedings as per the Code of Criminal Procedure, 1973?", options: { A: "Tender a pardon under Section 306 of CrPC.", B: "Recall a case and try it under Section 410 of the CrPC.", C: "Attaches property under Section 83 of the CrPC.", D: "Hold an inquest under Section 176 of the CrPC." }, correctAnswer: "C" },
+      { questionNumber: 7, question: "Which of the following is material for deciding the jurisdiction of the Civil Court in the light of the Code of Civil Procedure, 1908 ?", options: { A: "Averments made in the plaint", B: "Averments made in the written statement", C: "Both (A) & (B)", D: "Neither (A) nor (B)" }, correctAnswer: "A" },
+      { questionNumber: 8, question: "Which of the following cannot be considered as the suit of civil nature for Section 9 of the Code of Civil Procedure, 1908?", options: { A: "Suit for recovery of voluntary payments or offerings.", B: "Suit for rights of franchise.", C: "Suit for specific reliefs.", D: "Suit relating to rights of worship." }, correctAnswer: "A" },
+      { questionNumber: 9, question: "Which of the following provision of the Code of Civil Procedure, 1908 makes the doctrine of res judicata applicable in representative suit?", options: { A: "Section 11, Explanation V", B: "Section 11, Explanation VI", C: "Section 11, Explanation VII", D: "Section 11, Explanation VIII" }, correctAnswer: "B" },
+      { questionNumber: 10, question: "In which of the following situations a court will not issue summons for personal appearance to the defendant?", options: { A: "If defendant reside within the local limit of the court's jurisdiction.", B: "If defendant resides with within 40 miles from the court.", C: "If defendant resides 250 miles away from the court in an area having public conveyance available.", D: "Woman to whom Section 132 of the Civil Procedure Code, 1908 does not apply." }, correctAnswer: "C" },
+      { questionNumber: 11, question: "In which of the following situation plaintiff is precluded from bringing a fresh suit as per the Code of Civil Procedure, 1908?", options: { A: "Dismissal of suit where summons not served in consequence of plaintiff's failure to pay costs.", B: "Dismissal of suit because neither party appeared.", C: "Dismissal of suit in because plaintiff did not appear.", D: "Dismissal of suit because plaintiff did not apply for fresh summons within given time limit once it returned unserved." }, correctAnswer: "C" },
+      { questionNumber: 12, question: "How many times at max. may an adjournment be granted to a party during hearing of the suit as per the Code of Civil Procedure, 1908?", options: { A: "Two times", B: "Three times", C: "Four times", D: "No limit prescribed" }, correctAnswer: "B" },
+      { questionNumber: 13, question: "Which of the following Amendment Act made the provision in the Code of Civil Procedure, 1908 to produce a witness without a summons?", options: { A: "The Code of Civil Procedure (Amendment) Act, 1976", B: "The Code of Civil Procedure (Amendment) Act, 1999", C: "The Code of Civil Procedure (Amendment) Act, 2002", D: "Such provision does not exist." }, correctAnswer: "B" },
+      { questionNumber: 14, question: "Which of the following is not included in the word costs as provided under the Code of Civil Procedure, 1908?", options: { A: "The expenses of the witnesses incurred.", B: "Legal fees and expenses incurred.", C: "Fooding and lodging expenses incurred.", D: "Any other expenses incurred in connection with the proceedings." }, correctAnswer: "C" },
+      { questionNumber: 15, question: "What period is prescribed under the Code of Civil Procedure, 1908 for defendant to enter an appearance for filing address for service of notice on him in case of a suit where summary procedure is to be applied?", options: { A: "Seven days from the date of receiving of summons.", B: "Ten days from the date of receiving of summons.", C: "Fifteen days from the date of receiving of summons.", D: "Thirty days from the date of receiving of summons." }, correctAnswer: "B" },
+      { questionNumber: 16, question: "Under which of the following provisions of the Code of Civil Procedure, 1908 the appellate court may remit an issue for trial to lower court?", options: { A: "Order XLI Rule 23", B: "Order XLI Rule 23-A", C: "Order XLI Rule 24", D: "Order XLI Rule 25" }, correctAnswer: "D" },
+      { questionNumber: 17, question: "A is accused of the murder of B by beating him. Which of the following will not be considered as relevant fact forming part of the same transaction as per the Indian Evidence Act, 1872?", options: { A: "Whatever said by A or B at the time of beating.", B: "Whatever done by A or B at the time of beating.", C: "Whatever said by by-standers at the time of beating.", D: "Whatever said by A or B a day before the day of beating." }, correctAnswer: "D" },
+      { questionNumber: 18, question: "Which of the following provisions of the Indian Evidence Act, 1872 says that the confession to police-officer shall not be proved against him?", options: { A: "Section 24", B: "Section 25", C: "Section 26", D: "Section 27" }, correctAnswer: "B" },
+      { questionNumber: 19, question: "Under which of the following provision of the Indian Evidence Act, 1872 dying declaration may be admitted as evidence ?", options: { A: "Section 25", B: "Section 29", C: "Section 32", D: "Section 37" }, correctAnswer: "C" },
+      { questionNumber: 20, question: "Which of the following is correct according to the Indian Evidence Act, 1872 pertaining to the contents of the documents?", options: { A: "Contents of the documents shall be proved by primary evidence.", B: "Contents of the documents may be proved by secondary evidence.", C: "Contents of the documents shall be proved by both primary and secondary evidence.", D: "Contents of documents may be proved either by primary or by secondary evidence." }, correctAnswer: "D" },
+      { questionNumber: 21, question: "Which of the following is a correct statement as per the Indian Evidence Act, 1872?", options: { A: "Leading questions may be asked in examination-in-chief.", B: "Leading questions may be asked in cross-examination.", C: "Leading questions may be asked in re-examination.", D: "Leading question cannot be asked in cross-examination." }, correctAnswer: "B" },
+      { questionNumber: 22, question: "In which of the following case did the Supreme Court of India clarify the admissibility of electronic record as evidence?", options: { A: "Anvar P.V. v P.K. Basheer", B: "State of Haryana v Jai Singh", C: "State of Maharashtra v Natwarlal Damodardas Soni", D: "State of Punjab v Jagir Singh" }, correctAnswer: "A" },
+      { questionNumber: 23, question: "Which of the following is incorrect statement in the light of Indian Evidence Act, 1872?", options: { A: "Confession always go against a person making it.", B: "Admissions are conclusive as to the matters admitted.", C: "Admissions may operate as an estoppel.", D: "Confession is statement written or oral which is direct admission of suit." }, correctAnswer: "B" },
+      { questionNumber: 24, question: "Which of the following Section of the Indian Evidence Act, 1872 is an exception to hearsay rule?", options: { A: "Section 32 (1)", B: "Section 32 (2)", C: "Section 32 (3)", D: "Section 32 (5)" }, correctAnswer: "A" },
+      { questionNumber: 25, question: "Which of the following is not a recognized alternate dispute resolution mechanism under the Code of Civil Procedure, 1908?", options: { A: "Arbitration", B: "Conciliation", C: "Lok Adalat", D: "Negotiation" }, correctAnswer: "D" },
+      { questionNumber: 26, question: "Which of the following is incorrect statement with respect to Lok Adalat?", options: { A: "No court fee is required in Lok Adalat.", B: "Lok Adalat can deal with all civil & criminal matters.", C: "Award of Lok Adalat is a deemed decree.", D: "No appeal against the award of Lok Adalat is allowed." }, correctAnswer: "B" },
+      { questionNumber: 27, question: "Which of the following is incorrect with respect to arbitration agreement as per the Arbitration and Conciliation Act, 1996?", options: { A: "Arbitration agreement may be written as well as oral.", B: "Arbitration agreement may be in the form of a separate agreement.", C: "Arbitration agreement may be in the form of an arbitration clause in a contract.", D: "Arbitration agreement may be for all or certain disputes which may arise between the parties." }, correctAnswer: "A" },
+      { questionNumber: 28, question: "In which of the following circumstances an arbitrator may not be challenged as per the Arbitration and Conciliation Act, 1996?", options: { A: "When a justifiable doubt as to his independence arises.", B: "When a justifiable doubt as to his impartiality arises.", C: "When he possesses the qualifications agreed by the party.", D: "When he becomes ineligible as per the seventh schedule of the Act." }, correctAnswer: "C" },
+      { questionNumber: 29, question: "When may two persons be said to be related to each other by half-blood in accordance with the Hindu Marriage Act, 1955?", options: { A: "When they are descended from a common ancestor by the same wife.", B: "When they are descended from a common ancestor by different wives.", C: "When they are descended from a common ancestress by different husbands.", D: "When they are not descended from a common ancestor at all." }, correctAnswer: "C" },
+      { questionNumber: 30, question: "Which of the following is generally not considered as a valid condition for a Hindu marriage as per the Hindu Marriage Act, 1955?", options: { A: "The parties should not have a spouse living at the time of the marriage.", B: "The parties should be within the degrees of prohibited relationship.", C: "The parties should not be sapindas of each other.", D: "The parties should not be suffering from epilepsy." }, correctAnswer: "D" },
+      { questionNumber: 31, question: "Section 13(1) of the Hindu Marriage Act, 1955 provides for the following: i. Grounds for restitution of conjugal rights ii. Grounds for judicial separation iii. Grounds for divorce", options: { A: "i & ii", B: "ii & iii", C: "iii & i", D: "Only iii" }, correctAnswer: "B" },
+      { questionNumber: 32, question: "What is the meaning of the batil marriage in Muslim Law?", options: { A: "Valid marriage", B: "Void marriage", C: "Voidable marriage", D: "Irregular marriage" }, correctAnswer: "B" },
+      { questionNumber: 33, question: "What is 'a contract of marriage which may be dissolved by the wife under a power delegated to her' called under the Muslim Law?", options: { A: "Talaq-us-sunnat", B: "Talaq-ul-biddat", C: "Talaq-i-tafweez", D: "Talaq-a-hasan" }, correctAnswer: "C" },
+      { questionNumber: 34, question: "A Hindu boy and a Hindu girl may be married under the following law: i. The Hindu Marriage Act, 1955 ii. The Special Marriage Act, 1954", options: { A: "Only i is correct.", B: "Only ii is correct.", C: "Both i and ii are correct.", D: "Neither i nor ii is correct." }, correctAnswer: "C" },
+      { questionNumber: 35, question: "Through which of the following Amendment Act the rights in the coparcenary property is made available to a girl child as well?", options: { A: "The Hindu Succession (Amendment) Act, 2002", B: "The Hindu Succession (Amendment) Act, 2004", C: "The Hindu Succession (Amendment) Act, 2005", D: "The Hindu Succession (Amendment) Act, 2006" }, correctAnswer: "C" },
+      { questionNumber: 36, question: "What should be the age difference between the adoptive father and his adopted daughter for a valid adoption?", options: { A: "15 years", B: "18 years", C: "21 years", D: "No specific age difference required." }, correctAnswer: "C" },
+      { questionNumber: 37, question: "Which of the following case may be considered as the first reported case of PIL in India?", options: { A: "S.P. Gupta v Union of India", B: "Hussainara Khatoon v State of Bihar", C: "M.C. Mehta v Union of India", D: "Kalyaneshwari v Union of India" }, correctAnswer: "B" },
+      { questionNumber: 38, question: "Who among the following is considered as the father of PIL in India?", options: { A: "Justice S.R. Das", B: "Justice V.R. Krishna Iyer", C: "Justice P.N. Bhagwati", D: "Justice H.R. Khanna" }, correctAnswer: "C" },
+      { questionNumber: 39, question: "Against which of the following a PIL cannot be filed?", options: { A: "Against a State Government", B: "Against Central Government", C: "Against a private party", D: "Against Municipal Corporation" }, correctAnswer: "C" },
+      { questionNumber: 40, question: "In the light of the guidelines issued by the Supreme Court of India on which of the following issue a PIL cannot be entertained by the Court?", options: { A: "Bonded labour matters.", B: "Petition from jail for pre-mature release.", C: "Matters pertaining to neglected children.", D: "Petitions against police for refusing to register a case." }, correctAnswer: "B" },
+      { questionNumber: 41, question: "In which of the following landmark case it was held that Principles of Natural Justice were applicable not only to judicial and quasi-judicial functions, but also to administrative functions?", options: { A: "A.K. Kraipak v Union of India", B: "Ram Jawaya Kapoor v State of Punjab", C: "Sonik Industries Rajkot v Municipal Corporation, Rajkot", D: "Maneka Gandhi v Union of India" }, correctAnswer: "A" },
+      { questionNumber: 42, question: "In which of the following judgment the Supreme Court had comprehensively reconsidered S.P. Sampath Kumar v Union of India case?", options: { A: "J.B. Chopra v Union of India", B: "L. Chandra Kumar v Union of India", C: "R.K. Jain v Union of India", D: "S.K. Sarkar v Vinay Chandra Mishra" }, correctAnswer: "B" },
+      { questionNumber: 43, question: "Who among the following defined administrative law as 'the law relating to the control of governmental power' ?", options: { A: "Ivor Jennings", B: "Wade", C: "K.C. Davis Garner", D: "" }, correctAnswer: "B" },
+      { questionNumber: 44, question: "What penalty is prescribed for persons illegally practising in courts under the Advocate Act, 1961?", options: { A: "Imprisonment upto 3 months", B: "Imprisonment upto 6 months", C: "Imprisonment upto 9 months", D: "Imprisonment upto 12 months" }, correctAnswer: "B" },
+      { questionNumber: 45, question: "Which provision of the Advocate Act, 1961 empowers the Bar Council of India to prescribe the standard of professional conduct and etiquette to be observed by advocates?", options: { A: "Section 42", B: "Section 42A", C: "Section 48A", D: "Section 49" }, correctAnswer: "D" },
+      { questionNumber: 46, question: "Which of the following is incorrect according to the Bar Council of India Rules?", options: { A: "An Advocate can plead in any matter in which he is himself pecuniarily interested.", B: "An advocate shall appear in court at all times only in the prescribed dress.", C: "An Advocate shall not stand as a surety for his client.", D: "An Advocate shall not influence the decision of a court by any improper means." }, correctAnswer: "A" },
+      { questionNumber: 47, question: "Which of the following authority acts as an appellate authority against the order made by the disciplinary committee of the Bar Council of India?", options: { A: "Chairman of the Bar Council of India", B: "Vice-chairman of the Bar Council of India", C: "High Courts", D: "Supreme Court of India" }, correctAnswer: "D" },
+      { questionNumber: 48, question: "In which of the following situations a one person company (OPC) will mandatorily get converted into either private or public company?", options: { A: "In case the paid-up share capital of an OPC exceeds twenty-five lakh rupees.", B: "In case the paid-up share capital of an OPC exceeds fifty lakh rupees.", C: "In case the paid-up share capital of an OPC exceeds seventy-five lakh rupees.", D: "In case the paid-up share capital of an OPC exceeds one crore rupees." }, correctAnswer: "B" },
+      { questionNumber: 49, question: "What is the minimum number of directors required for a public company as per the Companies Act, 2013?", options: { A: "2", B: "3", C: "5", D: "7" }, correctAnswer: "B" },
+      { questionNumber: 50, question: "In which of the following case the Supreme Court of India had explained the Precautionary Principle in details?", options: { A: "Vellore Citizens' Welfare Forum v Union of India", B: "A.P. Pollution Control Board v M.V. Nayudu", C: "Indian Council for Enviro-Legal Action v Union of India", D: "M.C. Mehta v Kamal Nath" }, correctAnswer: "A" },
+      { questionNumber: 51, question: "Which of the following is a landmark case on the public trust doctrine in the Environmental Law?", options: { A: "Vellore Citizens’ Welfare Forum v Union of India", B: "Olga Tellis v Bombay Municipal Corporation", C: "Indian Council for Enviro-Legal Action v Union of India", D: "M.C. Mehta v Kamal Nath" }, correctAnswer: "D" },
+      { questionNumber: 52, question: "In which of the following case Section 66A of the Information Technology Act, 2000 was struck down by the Supreme Court?", options: { A: "Shreya Singhal v Union of India", B: "Kartar Singh v State of Punjab", C: "K.A. Abbas v Union of India", D: "Maneka Gandhi v Union of India" }, correctAnswer: "A" },
+      { questionNumber: 53, question: "In which of the following case an electronic record shall not be attributed to the originator as per the Information Technology Act, 2000?", options: { A: "Electronic record sent by the originator himself.", B: "Electronic record sent by an authorised person.", C: "Electronic record sent by an automated system programmed by him.", D: "Electronic record sent by an unauthorized person." }, correctAnswer: "D" },
+      { questionNumber: 54, question: "What is the maximum period for which any woman shall be entitled to maternity benefit under the Maternity Benefit Act, 1961?", options: { A: "6 weeks", B: "8 weeks", C: "12 weeks", D: "26 weeks" }, correctAnswer: "D" },
+      { questionNumber: 55, question: "For what duration is a woman entitled to leave with wages for tubectomy operation as per the Maternity Benefit Act, 1961?", options: { A: "2 weeks", B: "4 weeks", C: "6 weeks", D: "8 weeks" }, correctAnswer: "A" },
+      { questionNumber: 56, question: "What should be the minimum number of workers originally employed in any factory for having at least one canteen in the factory as per the Factories Act, 1948?", options: { A: "100 workers", B: "150 workers", C: "200 workers", D: "250 workers" }, correctAnswer: "D" },
+      { questionNumber: 57, question: "Who among the following is not included in the definition of a workman as per the Industrial Disputes Act, 1947?", options: { A: "A supervisor drawing monthly salary of 6,000.", B: "A supervisor drawing monthly salary of 8,000.", C: "A supervisor drawing monthly salary of 10,000.", D: "A supervisor drawing monthly salary of 12,000." }, correctAnswer: "D" },
+      { questionNumber: 58, question: "Who has defined tort as 'tortious liability arises from the breach of duty primarily fixed by law; this duty is towards persons generally and its breach is redressible by an action for unliquidated damages'?", options: { A: "Lindsell", B: "Pollock Salmond", C: "", D: "Winfield" }, correctAnswer: "D" },
+      { questionNumber: 59, question: "Gloucester Grammar School case relates to which of the following important maxims?", options: { A: "Damnum sine injuria", B: "Injuria sine damno", C: "Ubi jus ibi remedium", D: "Volenti non fit injuria" }, correctAnswer: "A" },
+      { questionNumber: 60, question: "Which of the following provision of the Motor Vehicles Act, 1988 relates to no fault liability?", options: { A: "Section 140", B: "Section 151", C: "Section 162", D: "Section 128" }, correctAnswer: "A" },
+      { questionNumber: 61, question: "How many consumer rights are identified under the Consumer Protection Act, 2019?", options: { A: "2", B: "4", C: "6", D: "8" }, correctAnswer: "C" },
+      { questionNumber: 62, question: "Which of the following body constituted under the Consumer Protection Act, 2019 is authorised to render advice on promotion and protection of consumers' right under the Act?", options: { A: "Central Consumer Protection Authority", B: "Central Consumer Protection Council", C: "State Consumer Protection Authority", D: "State Consumer Protection Council" }, correctAnswer: "B" },
+      { questionNumber: 63, question: "Which of the following provision of the Constitution of India states that no tax can be levied or collected except by authority of law?", options: { A: "Article 246", B: "Article 256", C: "Article 260", D: "Article 265" }, correctAnswer: "D" },
+      { questionNumber: 64, question: "Which of the following would be the first previous year in case of a business or profession newly set up on 31st March, 2020 as per the Income Tax Act, 1961 ?", options: { A: "Start from 1st April, 2019 and will end on 31st March, 2020.", B: "Start from 31st March, 2020 and will end on 31st March, 2020.", C: "Start from 1st April, 2020 and will end on 31st December, 2020.", D: "Start from 1st January, 2020 and will end on 31st March, 2020." }, correctAnswer: "B" },
+      { questionNumber: 65, question: "As per the Income Tax Act, 1961 a person is said to be resident of India in any previous year if he had been in India for a period of the following number of days in the previous year :", options: { A: "180 days", B: "182 days", C: "184 days", D: "186 days" }, correctAnswer: "B" },
+      { questionNumber: 66, question: "Income is defined under which of the following provision of the Income Tax Act, 1961?", options: { A: "Section 2(31)", B: "Section 2(24)", C: "Section 2(9)", D: "Section 3" }, correctAnswer: "B" },
+      { questionNumber: 67, question: "Which of the following is not a fraud as per the Indian Contract Act, 1872 ?", options: { A: "A promise made without intention of performing it.", B: "An active concealment of fact by one having knowledge of the fact.", C: "Mere silence if not duty bound to speak.", D: "Any act or omission law specifically declares to be fraudulent." }, correctAnswer: "C" },
+      { questionNumber: 68, question: "Which of the following statement is correct if A, intending to deceive B, falsely represents that five hundred maunds of indigo are made annually at A's factory, and thereby induces B to buy the factory?", options: { A: "Contract is void ab initio.", B: "Contract is voidable at the option of A.", C: "Contract is voidable at the option of B.", D: "Contract is voidable at the option of A & B." }, correctAnswer: "C" },
+      { questionNumber: 69, question: "Which of the following injunction can be granted only by the decree made at hearing and upon the merit of the suit?", options: { A: "Temporary injunction", B: "Perpetual injunction", C: "Mandatory injunction", D: "Prohibitory injunction" }, correctAnswer: "B" },
+      { questionNumber: 70, question: "A stipulation in a bond for payment of compound interest on failure to pay simple interest at the same rate as was payable upon the principal is not a penalty within the meaning of which of the following provision of the Indian Contract Act, 1872?", options: { A: "Section 73", B: "Section 74", C: "Section 75", D: "Section 76" }, correctAnswer: "B" },
+      { questionNumber: 71, question: "What is the default interest payable under Section 63A of the Transfer of Property Act, 1882?", options: { A: "6% per annum", B: "8% per annum", C: "9% per annum", D: "No default rate prescribed." }, correctAnswer: "C" },
+      { questionNumber: 72, question: "Which of the following is the time limit given under Section 17 of the Transfer of Property Act, 1882?", options: { A: "Life of the transferee", B: "A period of 18 years from the date of transfer.", C: "Either (A) or (B) whichever is longer", D: "Neither (A) nor (B)" }, correctAnswer: "B" },
+      { questionNumber: 73, question: "Which of the following is not a negotiable instrument as per the Negotiable Instruments Act, 1881?", options: { A: "Promissory note", B: "Hundi", C: "Bill of exchange", D: "Cheque" }, correctAnswer: "B" },
+      { questionNumber: 74, question: "In the light of Negotiable Instruments Act, 1881, at what rate interest will be charged if the rate of interest is not mentioned on the negotiable instruments?", options: { A: "6% per annum", B: "10% per annum", C: "18% per annum", D: "20% per annum" }, correctAnswer: "C" },
+      { questionNumber: 75, question: "Within what period from the date of publication of the declaration, if no award is made, the entire proceedings for the acquisition of land shall lapse as per the Right to Fair Compensation and Transparency in Land Acquisition, Rehabilitation and Resettlement Act, 2013?", options: { A: "6 months", B: "12 months", C: "18 months", D: "24 months" }, correctAnswer: "B" },
+      { questionNumber: 76, question: "What is the minimum percentage of affected families that need to give their prior consent for acquiring land for private companies as per the Right To Fair Compensation and Transparency in Land Acquisition, Rehabilitation and Resettlement Act, 2013?", options: { A: "75%", B: "80%", C: "90%", D: "100%" }, correctAnswer: "B" },
+      { questionNumber: 77, question: "Imagine an IPL team sets up a company to sell its own range of clothes. What type of intellectual property can the team use to show that the clothes are made by them?", options: { A: "Patents", B: "Geographical Indications", C: "Trademarks", D: "Registered designs" }, correctAnswer: "C" },
+      { questionNumber: 78, question: "How long do patents usually last for?", options: { A: "10 years", B: "20 years", C: "25 years", D: "50 years" }, correctAnswer: "B" },
+      { questionNumber: 79, question: "The concept of freedom of trade and commerce mentioned in the Indian Constitution is motivated from the experience of the following country?", options: { A: "America", B: "Australia", C: "Ireland", D: "United Kingdom" }, correctAnswer: "B" },
+      { questionNumber: 80, question: "Which of the following writ is issued to enforce the performance of public duties by the authority?", options: { A: "Mandamus", B: "Quo warranto", C: "Certiorari", D: "Prohibition" }, correctAnswer: "A" },
+      { questionNumber: 81, question: "Which of the following Constitutional Amendment Act had made the provision for publishing Hindi Translation of the Constitution ?", options: { A: "52nd Amendment", B: "54th Amendment", C: "56th Amendment", D: "58th Amendment" }, correctAnswer: "D" },
+      { questionNumber: 82, question: "Which of the following is the landmark judgment on the Colourable legislation?", options: { A: "State of Bihar v Kameshwar Singh", B: "M. Karunanidhi v Union of India", C: "State of Karnataka v Union of India", D: "Keshavan Madhava Menon v State of Bombay" }, correctAnswer: "A" },
+      { questionNumber: 83, question: "Which of the following Constitutional Amendment Act was passed in light of the advisory opinion received in Re Berubari case?", options: { A: "The Constitution (Fourth Amendment) Act, 1955", B: "The Constitution (Seventh Amendment) Act, 1956", C: "The Constitution (Ninth Amendment) Act, 1960", D: "The Constitution (Eleventh Amendment) Act, 1961" }, correctAnswer: "C" },
+      { questionNumber: 84, question: "Which of the following provision of the Constitution of India is relevant for solving questions of repugnancy between a Central law and a State law?", options: { A: "Article 248", B: "Article 252", C: "Article 254", D: "Article 256" }, correctAnswer: "C" },
+      { questionNumber: 85, question: "What transition period was provided in the Constitution of India for changing official language of Union from English to Hindi?", options: { A: "5 years", B: "10 years", C: "15 years", D: "25 years" }, correctAnswer: "C" },
+      { questionNumber: 86, question: "In which of the following case it was held that there could be no reservation on single post in the cadre?", options: { A: "Chakradhar Paswan v State of Bihar", B: "K.C. Vasanth Kumar v State of Karnataka", C: "A.B.S.K. Sangh (Rly) v Union of India", D: "State of Kerala v N.M. Thomas" }, correctAnswer: "A" },
+      { questionNumber: 87, question: "Sexual harassment of a working woman at her place of work may also be considered as the violation of which of the following provision of the Constitution of India?", options: { A: "Article 19(1)(b)", B: "Article 19(1)(d)", C: "Article 19(1)(e)", D: "Article 19(1)(g)" }, correctAnswer: "D" },
+      { questionNumber: 88, question: "Which of the following doctrine has been applied to resolve the conflict between Article 25(2)(b) and 26(b) of the Constitution of India?", options: { A: "Doctrine of Harmonious construction", B: "Doctrine of Casus Omissus", C: "Doctrine of Liberal interpretation", D: "Doctrine of Pith and substance" }, correctAnswer: "A" },
+      { questionNumber: 89, question: "In which of the following situations Indian Penal Code, 1860 may not apply? i. An offence committed by Indians outside India. ii. An offence committed by any person on any ship registered in India. iii. Any person committing offence targeting computer resources located in any country.", options: { A: "Only i", B: "Only ii", C: "Only iii", D: "Only i & ii" }, correctAnswer: "C" },
+      { questionNumber: 90, question: "How many types of punishment are currently existing under the Indian Penal Code, 1860?", options: { A: "3", B: "4", C: "5", D: "" }, correctAnswer: "C" },
+      { questionNumber: 91, question: "A and Z agree to fence with each other for amusement. In the course of such fencing, while playing fairly, A hurts Z severely. Which of the following offence is committed by A?", options: { A: "Hurt", B: "Attempt to murder", C: "Grievous hurt", D: "No offence" }, correctAnswer: "D" },
+      { questionNumber: 92, question: "In which of the following situations right of private defence can not extend to causing death?", options: { A: "In case when an assault is causing apprehension of murder.", B: "In case when assault is reflecting intention of committing rape.", C: "In case when assault is reflecting intention of causing simple hurt.", D: "In case when assault is reflecting intention of gratifying unnatural lust." }, correctAnswer: "C" },
+      { questionNumber: 93, question: "For which of the following Section of the Indian Penal Code, 1860 the word benefit does not include pecuniary benefits?", options: { A: "Section 89", B: "Section 155", C: "Section 156", D: "Section 370" }, correctAnswer: "A" },
+      { questionNumber: 94, question: "X intentionally pulls up a woman's veil without her consent intending to annoy her. As per the Indian Penal Code, 1860 which of the following offence he has committed?", options: { A: "Hurt", B: "Criminal force", C: "Assault", D: "Grievous hurt" }, correctAnswer: "B" },
+      { questionNumber: 95, question: "What punishment is prescribed under the Indian Penal Code, 1860 for a person who maims any minor in order that such minor may be used for the purposes of begging?", options: { A: "Imprisonment for 5 years and fine", B: "Imprisonment for 7 years and fine", C: "Imprisonment for 10 years and fine", D: "Imprisonment for life and fine" }, correctAnswer: "D" },
+      { questionNumber: 96, question: "X threatens to publish a defamatory libel concerning Y unless Y gives him money. Which of the following punishment may be given to X for the act committed by him as per the Indian Penal Code, 1860 ?", options: { A: "Imprisonment upto 2 years, or with fine or with both.", B: "Imprisonment upto 3 years, or with fine or with both.", C: "Imprisonment upto 5 years, or with fine or with both.", D: "Imprisonment upto 7 years, or with fine or with both." }, correctAnswer: "B" },
+      { questionNumber: 97, question: "Which of the following sentence is an Assistant Sessions Judge authorised to pass as per the Code of Criminal Procedure, 1973?", options: { A: "Sentence of death.", B: "Sentence of imprisonment for life.", C: "Sentence of imprisonment for a term not exceeding ten years.", D: "Sentence of imprisonment for a term exceeding ten years." }, correctAnswer: "C" },
+      { questionNumber: 98, question: "A person arrested by a private person for committing a non-bailable and cognizable offence shall be re-arrested by a police officer if such person comes under which of the following provision of the Code of Criminal Procedure, 1973 ?", options: { A: "Section 41", B: "Section 41A", C: "Section 42", D: "Section 43" }, correctAnswer: "A" },
+      { questionNumber: 99, question: "Under which of the following situation wife is not entitled for maintenance under Section 125 of the Code of Criminal Procedure, 1973 ?", options: { A: "Husband presumes that wife is living in adultery.", B: "Voluntarily wife refuses to live with husband.", C: "Wife living separately as husband keeps a mistress.", D: "Wife is forcefully removed from the house." }, correctAnswer: "B" },
+      { questionNumber: 100, question: "Which of the following procedure is dealt under Section 164-A of the Code of Criminal Procedure, 1973?", options: { A: "Medical examination of the victim of rape.", B: "Attendance of witness by police officer.", C: "Recording of confession statement.", D: "Recording of first information report by police officer." }, correctAnswer: "A" }
     ];
 
-    // Insert all questions
-    for (const questionData of questions) {
+    for (const q of questions) {
       await prisma.question.create({
         data: {
           testId: aibeTest.id,
-          questionNumber: questionData.questionNumber,
-          question: questionData.question,
-          optionA: questionData.options.A,
-          optionB: questionData.options.B,
-          optionC: questionData.options.C,
-          optionD: questionData.options.D,
-          correctAnswer: questionData.correctAnswer
+          questionNumber: q.questionNumber,
+          question: q.question,
+          options: q.options,      // <- use `options` JSON field instead of optionA/optionB...
+          correctAnswer: q.correctAnswer
         }
       });
     }
 
     console.log(`✅ AIBE Mock Test created with ${questions.length} questions`);
     console.log(`📝 Test ID: ${aibeTest.id}`);
-    console.log(`⏱️  Time Limit: 180 minutes (3 hours)`);
-    console.log(`🎯 Pass Mark: 40% (40/100 questions)`);
-
     return aibeTest;
 
   } catch (error) {
     console.error('Error seeding AIBE test:', error);
     throw error;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-// Run the seed if called directly
 if (require.main === module) {
   seedAIBETest()
     .then(() => {

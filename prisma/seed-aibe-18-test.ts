@@ -21,13 +21,13 @@ async function main() {
     // Create AIBE Test (6 Questions for Testing)
     const aibeTest = await prisma.test.create({
       data: {
-        title: "AIBE Mock Test - Sample (6 Questions)",
-        description: "All India Bar Examination practice test covering Criminal Procedure Code. This is a sample test with 6 questions for testing the system.",
-        category: "AIBE - Criminal Procedure",
+        title: "AIBE XVIII",
+        description: "Original All India Bar Examination XVII practice test.",
+        category: "AIBE",
         difficulty: "HARD",
-        timeLimit: 15, // 15 minutes for testing (instead of 180)
-        totalQuestions: 6,
-        passingScore: 40.0, // 40% = 2.4 questions (3 to pass)
+        timeLimit: 180, // 3 hours for testing
+        totalQuestions: 100, // Actual test has 100 questions
+        passingScore: 40.0, // 40% = 40 questions (40 to pass)
         isPublished: true,
         createdBy: adminUser.id,
       }

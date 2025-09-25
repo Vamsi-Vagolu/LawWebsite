@@ -4,86 +4,50 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
+    const { id: testId } = await params;
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    // next-auth expects a Node/NextRequest shape — cast to any for typing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const testId = params.id;
-
-    // Get the test with questions
+    // fetch test meta (no questions here)
     const test = await prisma.test.findUnique({
       where: { id: testId },
-      include: {
-        questions: {
-          orderBy: {
-            questionNumber: 'asc'
-          }
-        }
-      }
-    });
-
-    if (!test) {
-      return NextResponse.json(
-        { error: "Test not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if test is published
-    if (!test.isPublished) {
-      return NextResponse.json(
-        { error: "Test is not available" },
-        { status: 403 }
-      );
-    }
-
-    // Check if user has already attempted this test
-    const existingAttempt = await prisma.testAttempt.findFirst({
-      where: {
-        testId: testId,
-        userId: token.sub!,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        timeLimit: true,
+        totalQuestions: true,
+        passingScore: true,
+        isPublished: true,
       },
     });
 
-    // Transform questions for frontend (remove correct answers for security)
-    const safeQuestions = test.questions.map(question => ({
-      id: question.id,
-      questionNumber: question.questionNumber,
-      question: question.question,
-      options: question.options,
-      // Don't send correctAnswer to frontend for security
-    }));
+    if (!test) return NextResponse.json({ error: "Test not found" }, { status: 404 });
+    if (!test.isPublished) return NextResponse.json({ error: "Test not available" }, { status: 403 });
 
-    return NextResponse.json({
-      id: test.id,
-      title: test.title,
-      description: test.description,
-      category: test.category,
-      difficulty: test.difficulty,
-      timeLimit: test.timeLimit,
-      totalQuestions: test.totalQuestions,
-      passingScore: test.passingScore,
-      questions: safeQuestions,
-      hasAttempted: !!existingAttempt,
-      attemptScore: existingAttempt?.score || null,
+    // fetch ALL questions explicitly (no take/limit)
+    const questions = await prisma.question.findMany({
+      where: { testId },
+      orderBy: { questionNumber: "asc" }
     });
 
+    // remove correct answers before returning to client
+    const safeQuestions = questions.map(({ correctAnswer, ...rest }) => rest);
+
+    return NextResponse.json({
+      ...test,
+      questions: safeQuestions
+    });
   } catch (error) {
-    console.error("Error fetching test:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error in tests/[id] route:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
