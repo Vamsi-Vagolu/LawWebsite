@@ -53,9 +53,10 @@ model User {
   accounts         Account[]
   sessions         Session[]
   notes            Note[]
-  quizzes          Quiz[]
   viewedNotes      ViewedNote[]
   favoriteNotes    UserFavoriteNote[]
+  testAttempts     TestAttempt[]
+  createdTests     Test[] // Tests created by this user (if admin/owner)
 
   @@index([email])
   @@index([role])
@@ -83,7 +84,6 @@ model Note {
 
   // Relations
   user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quizzes       Quiz[]
   viewedNotes   ViewedNote[]
   favoriteNotes UserFavoriteNote[]
 
@@ -91,36 +91,6 @@ model Note {
   @@index([userId])
   @@index([category])
   @@index([createdAt])
-}
-
-model Quiz {
-  id        String   @id @default(cuid())
-  title     String
-  noteId    String?
-  userId    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  note      Note?      @relation(fields: [noteId], references: [id], onDelete: SetNull)
-  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  questions Question[]
-
-  @@index([noteId])
-  @@index([userId])
-}
-
-model Question {
-  id        String   @id @default(cuid())
-  question  String
-  options   String[] // Array of options
-  answer    String   // Correct answer
-  quizId    String
-  createdAt DateTime @default(now())
-
-  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
-
-  @@index([quizId])
 }
 
 model ViewedNote {
@@ -149,6 +119,79 @@ model UserFavoriteNote {
   @@index([noteId])
 }
 
+// ✅ NEW TEST MODELS
+model Test {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String?  // e.g., "Constitutional Law", "Criminal Law"
+  difficulty  Difficulty @default(MEDIUM)
+  timeLimit   Int      // Time limit in minutes
+  totalQuestions Int   // Total number of questions
+  passingScore   Float @default(60.0) // Passing percentage
+  isPublished Boolean @default(false)
+  createdBy   String   // User who created this test
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creator   User @relation(fields: [createdBy], references: [id])
+  questions Question[]
+  attempts  TestAttempt[]
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([isPublished])
+  @@index([createdBy])
+  @@index([createdAt])
+}
+
+model Question {
+  id             String @id @default(cuid())
+  testId         String
+  questionNumber Int    // Order of question in test (1, 2, 3...)
+  question       String @db.Text // The question text
+  optionA        String
+  optionB        String
+  optionC        String
+  optionD        String
+  correctAnswer  String // 'A', 'B', 'C', 'D'
+  explanation    String? @db.Text // Optional explanation for the answer
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([questionNumber])
+}
+
+model TestAttempt {
+  id          String    @id @default(cuid())
+  testId      String
+  userId      String
+  answers     Json      // Store user answers as JSON: {"1": "A", "2": "B", "3": "C"}
+  score       Float?    // Percentage score (0-100)
+  correctCount Int?     // Number of correct answers
+  totalQuestions Int?   // Total questions in test at time of attempt
+  timeSpent   Int?      // Time spent in minutes
+  isCompleted Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([userId])
+  @@index([isCompleted])
+  @@index([createdAt])
+}
+
 model MaintenanceSettings {
   id        String    @id @default("1")
   isEnabled Boolean   @default(false)
@@ -174,4 +217,10 @@ enum Role {
   USER
   ADMIN
   OWNER
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
 }

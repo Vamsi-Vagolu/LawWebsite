@@ -9,8 +9,9 @@ import { FIRM_NAME } from "../config";
 type AppRoutes =
   | "/"
   | "/notes"
-  | "/blog"
-  | "/contact"
+  | "/tests"  // ✅ Added missing route
+  | "/blog"   // ✅ Added missing route  
+  | "/contact" // ✅ Added missing route
   | "/login"
   | "/signup"
   | "/admin"
@@ -95,6 +96,20 @@ export default function Navbar() {
       ),
     },
     {
+      name: "Tests",
+      href: "/tests",
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+          />
+        </svg>
+      ),
+    },
+    {
       name: "Blog",
       href: "/blog",
       icon: (
@@ -117,7 +132,7 @@ export default function Navbar() {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            d="M3 8l7.89 4.26a2.22 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
           />
         </svg>
       ),
@@ -385,6 +400,24 @@ export default function Navbar() {
                         My Notes
                       </Link>
 
+                      {/* Add Tests link for logged-in users */}
+                      {session && (
+                        <Link
+                          href="/tests"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                            />
+                          </svg>
+                          My Tests
+                        </Link>
+                      )}
+
                       <hr className="my-1" />
 
                       <button
@@ -555,6 +588,17 @@ export default function Navbar() {
                     <span className="text-xs px-2 py-1 rounded-full font-medium bg-purple-100 text-purple-700">
                       Owner
                     </span>
+                  </Link>
+                )}
+
+                {/* Tests link in mobile menu */}
+                {session && (
+                  <Link
+                    href="/tests"
+                    className="block px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-amber-600 transition-colors duration-200"
+                    onClick={handleLinkClick}
+                  >
+                    📝 Tests
                   </Link>
                 )}
               </div>

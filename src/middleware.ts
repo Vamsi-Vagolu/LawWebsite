@@ -6,6 +6,7 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Skip API routes and static files
   if (
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
@@ -13,6 +14,25 @@ export async function middleware(request: NextRequest) {
     pathname.includes('.')
   ) {
     return NextResponse.next();
+  }
+
+  // ✅ ADD LOGIN PROTECTION FOR TEST ROUTES
+  const protectedRoutes = ['/tests', '/admin', '/owner'];
+  const requiresAuth = protectedRoutes.some(route => 
+    pathname.startsWith(route) && pathname !== '/tests/public' // Optional: allow some public test routes
+  );
+
+  if (requiresAuth) {
+    const token = await getToken({ 
+      req: request, 
+      secret: process.env.NEXTAUTH_SECRET 
+    });
+
+    if (!token) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   // ✅ ONLY CHECK: Environment Variable (Simple & Fast)
