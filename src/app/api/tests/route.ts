@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
     const token = await getToken({ 
       req: request, 
       secret: process.env.NEXTAUTH_SECRET 
@@ -19,70 +18,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if database has any tests first
-    const testCount = await prisma.test.count({
-      where: { isPublished: true }
-    });
-
-    // If no tests exist, return mock data for development
-    if (testCount === 0) {
-      console.log('No tests found in database, returning mock data');
-      
-      const mockTests = [
-        {
-          id: 'mock-1',
-          title: 'Constitutional Law - Fundamentals',
-          description: 'Test your knowledge of fundamental rights, directive principles, and constitutional amendments.',
-          category: 'Constitutional Law',
-          difficulty: 'MEDIUM',
-          timeLimit: 60,
-          totalQuestions: 50,
-          passingScore: 70,
-          createdAt: new Date().toISOString(),
-          creator: 'System Admin',
-          questionCount: 50,
-          totalAttempts: 0,
-          userAttempts: 0,
-          bestScore: null
-        },
-        {
-          id: 'mock-2',
-          title: 'Criminal Law - Advanced Concepts',
-          description: 'Advanced topics in criminal law including procedures, evidence, and case studies.',
-          category: 'Criminal Law',
-          difficulty: 'HARD',
-          timeLimit: 90,
-          totalQuestions: 75,
-          passingScore: 65,
-          createdAt: new Date().toISOString(),
-          creator: 'System Admin',
-          questionCount: 75,
-          totalAttempts: 0,
-          userAttempts: 0,
-          bestScore: null
-        },
-        {
-          id: 'mock-3',
-          title: 'Contract Law - Basics',
-          description: 'Essential concepts of contract law, formation, performance, and breach.',
-          category: 'Contract Law',
-          difficulty: 'EASY',
-          timeLimit: 45,
-          totalQuestions: 30,
-          passingScore: 75,
-          createdAt: new Date().toISOString(),
-          creator: 'System Admin',
-          questionCount: 30,
-          totalAttempts: 0,
-          userAttempts: 0,
-          bestScore: null
-        }
-      ];
-
-      return NextResponse.json(mockTests);
-    }
-
-    // Fetch all published tests with proper error handling
+    // Fetch all published tests from database
     const tests = await prisma.test.findMany({
       where: { isPublished: true },
       include: {
@@ -99,10 +35,8 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Optimize user data fetching with a single query per user
+    // Get user attempts for each test
     const userId = token.sub!;
-    
-    // Get all user attempts for these tests in one query
     const userAttempts = await prisma.testAttempt.groupBy({
       by: ['testId'],
       where: {
@@ -114,7 +48,6 @@ export async function GET(request: NextRequest) {
       _max: { score: true }
     });
 
-    // Create lookup map for performance
     const userAttemptsMap = new Map(
       userAttempts.map(attempt => [
         attempt.testId, 
@@ -125,7 +58,6 @@ export async function GET(request: NextRequest) {
       ])
     );
 
-    // Map tests with user data
     const testsWithUserData = tests.map(test => {
       const userStats = userAttemptsMap.get(test.id) || { count: 0, bestScore: null };
       
@@ -151,19 +83,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching tests:', error);
-    
-    // Return detailed error in development, generic in production
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        ...(isDevelopment && { details: error instanceof Error ? error.message : 'Unknown error' })
-      }, 
+      { error: 'Internal server error' }, 
       { status: 500 }
     );
   } finally {
-    // Ensure Prisma connection is properly closed
     await prisma.$disconnect();
   }
 }

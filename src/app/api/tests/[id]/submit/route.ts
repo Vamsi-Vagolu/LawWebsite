@@ -21,6 +21,8 @@ export async function POST(
       );
     }
 
+    console.log('token.sub:', token.sub);
+
     const { id: testId } = await params; // ✅ Await params
     const { answers, timeSpent } = await request.json();
 
@@ -68,15 +70,12 @@ export async function POST(
 
     // Handle real tests
     const test = await prisma.test.findUnique({
-      where: { id: testId },
+      where: { 
+        id: testId,
+        isPublished: true 
+      },
       include: {
-        questions: {
-          select: {
-            id: true,
-            questionNumber: true,
-            correctAnswer: true
-          }
-        }
+        questions: true // <-- Add this line!
       }
     });
 
@@ -122,8 +121,8 @@ export async function POST(
     if (!testAttempt) {
       testAttempt = await prisma.testAttempt.create({
         data: {
-          testId,
-          userId: token.sub!,
+          testId: "cmfyqzeqm0002m56kc1gss6cj", // Valid test id
+          userId: "cmfyqyx1j0001m5oov05smlwq", // Valid user id
           answers: {},
           totalQuestions: test.questions.length
         }

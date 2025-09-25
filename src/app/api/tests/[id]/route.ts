@@ -6,10 +6,9 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> } // ✅ Updated type
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check authentication
     const token = await getToken({ 
       req: request, 
       secret: process.env.NEXTAUTH_SECRET 
@@ -22,41 +21,13 @@ export async function GET(
       );
     }
 
-    const { id: testId } = await params; // ✅ Await params
+    const { id: testId } = await params;
 
-    // Handle mock tests
-    if (testId.startsWith('mock-')) {
-      const mockTestData = {
-        id: testId,
-        title: "Constitutional Law - Practice Test 1",
-        description: "Comprehensive test covering fundamental rights, directive principles, and constitutional amendments.",
-        category: "Constitutional Law",
-        difficulty: "MEDIUM",
-        timeLimit: 60, // 60 minutes
-        totalQuestions: 50,
-        passingScore: 70.0,
-        questions: Array.from({ length: 50 }, (_, i) => ({
-          id: `q${i + 1}`,
-          questionNumber: i + 1,
-          question: `Which of the following is correct regarding Article ${21 + i} of the Indian Constitution?`,
-          optionA: "It deals with fundamental rights and their enforcement mechanisms",
-          optionB: "It establishes the framework for judicial review and constitutional interpretation",
-          optionC: "It defines the relationship between the Union and State governments",
-          optionD: "It outlines the procedures for constitutional amendments and modifications"
-        })),
-        creator: "System Admin",
-        hasActiveAttempt: false,
-        attemptId: null
-      };
-
-      return NextResponse.json(mockTestData);
-    }
-
-    // Handle real tests
+    // ✅ Remove mock data handling - only use real database data
     const test = await prisma.test.findUnique({
       where: { 
         id: testId,
-        isPublished: true // Only published tests
+        isPublished: true
       },
       include: {
         questions: {
@@ -65,11 +36,7 @@ export async function GET(
             id: true,
             questionNumber: true,
             question: true,
-            optionA: true,
-            optionB: true,
-            optionC: true,
-            optionD: true,
-            // Don't include correctAnswer in GET request for security
+            options: true, // <-- Use options, not optionA/B/C/D
           }
         },
         creator: {
@@ -80,14 +47,14 @@ export async function GET(
       }
     });
 
-    if (!test) {
+    if (!test || !test.questions) {
       return NextResponse.json(
         { error: 'Test not found or not published' }, 
         { status: 404 }
       );
     }
 
-    // Check if user already has an active attempt
+    // Check for active attempts
     const existingAttempt = await prisma.testAttempt.findFirst({
       where: {
         testId: testId,
@@ -143,6 +110,8 @@ export async function POST(
     const { id: testId } = await params; // ✅ Await params
     const { action } = await request.json();
 
+    console.log('token.sub:', token.sub);
+
     if (action === 'start') {
       // Handle mock tests
       if (testId.startsWith('mock-')) {
@@ -188,10 +157,10 @@ export async function POST(
       // Create new attempt
       const newAttempt = await prisma.testAttempt.create({
         data: {
-          testId: testId,
-          userId: token.sub!,
+          testId, // from params
+          userId: token.sub!, // from JWT
           answers: {},
-          totalQuestions: test.totalQuestions
+          totalQuestions: test.questions.length
         }
       });
 

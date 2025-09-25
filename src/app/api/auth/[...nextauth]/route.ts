@@ -47,6 +47,7 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.sub = user.id; // ✅ Ensure token.sub is set!
         token.id = user.id;
         token.role = user.role;
         token.name = user.name ?? null;

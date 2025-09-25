@@ -71,24 +71,6 @@ async function main() {
       },
     });
 
-    // 📝 Create quizzes for each note
-    await prisma.quiz.createMany({
-      data: [
-        {
-          question: `What is one key point in ${note.title}?`,
-          answer: "Refer to the note content.",
-          userId: admin.id,
-          noteId: createdNote.id,
-        },
-        {
-          question: `Which category is ${note.title} in?`,
-          answer: note.category ?? "General",
-          userId: admin.id,
-          noteId: createdNote.id,
-        },
-      ],
-    });
-
     // ⭐ Mark one note as favorite for test user
     if (note.title === "Constitutional Law") {
       await prisma.userFavoriteNote.create({

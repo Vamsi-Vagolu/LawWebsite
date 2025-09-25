@@ -21,16 +21,17 @@ interface TestData {
   id: string;
   title: string;
   description: string;
-  timeLimit: number; // in minutes
+  timeLimit: number;
   totalQuestions: number;
+  passingScore: number; // ✅ Add this line
   questions: Question[];
+  // ...other fields...
 }
 
 interface UserAnswer {
-  questionId: string;
-  selectedAnswer: 'A' | 'B' | 'C' | 'D' | null;
-  flagged: boolean;
-  timeSpent: number;
+  selectedAnswer: string | null;
+  isAnswered: boolean; // ✅ Add this line
+  isFlagged: boolean;
 }
 
 export default function TestSeriesPage() {
@@ -54,6 +55,7 @@ export default function TestSeriesPage() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load test data
   useEffect(() => {
@@ -68,45 +70,57 @@ export default function TestSeriesPage() {
   }, [session, status, testId, router]);
 
   const fetchTestData = async () => {
-    try {
-      // For now, using mock data - replace with actual API call
-      const mockTestData: TestData = {
-        id: testId,
-        title: "Constitutional Law - Practice Test 1",
-        description: "Comprehensive test covering fundamental rights, directive principles, and constitutional amendments.",
-        timeLimit: 60, // 60 minutes
-        totalQuestions: 50,
-        questions: Array.from({ length: 50 }, (_, i) => ({
-          id: `q${i + 1}`,
-          questionNumber: i + 1,
-          question: `Which of the following is correct regarding Article ${21 + i} of the Indian Constitution?`,
-          options: {
-            A: "It deals with fundamental rights and their enforcement mechanisms",
-            B: "It establishes the framework for judicial review and constitutional interpretation",
-            C: "It defines the relationship between the Union and State governments",
-            D: "It outlines the procedures for constitutional amendments and modifications"
-          },
-          correctAnswer: ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)] as 'A' | 'B' | 'C' | 'D'
-        }))
-      };
+    if (!session?.user) {
+      router.push('/login');
+      return;
+    }
 
-      setTestData(mockTestData);
-      setTimeRemaining(mockTestData.timeLimit * 60); // Convert to seconds
+    try {
+      setLoading(true);
       
-      // Initialize user answers
+      // ✅ Call the real API instead of using mock data
+      const response = await fetch(`/api/tests/${testId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Test not found');
+          return;
+        }
+        throw new Error('Failed to fetch test data');
+      }
+      
+      const data = await response.json();
+      
+      // ✅ Set the real test data from database
+      setTestData({
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        timeLimit: data.timeLimit,
+        totalQuestions: data.totalQuestions,
+        passingScore: data.passingScore,
+        questions: data.questions
+      });
+      
+      // Initialize user answers for all questions
       const initialAnswers: Record<string, UserAnswer> = {};
-      mockTestData.questions.forEach(q => {
+      data.questions.forEach((q: any) => {
         initialAnswers[q.id] = {
-          questionId: q.id,
           selectedAnswer: null,
-          flagged: false,
-          timeSpent: 0
+          isAnswered: false,
+          isFlagged: false
         };
       });
       setUserAnswers(initialAnswers);
       
+      // Set timer based on real time limit (convert minutes to seconds)
+      setTimeRemaining(data.timeLimit * 60);
+      
+      console.log('✅ Real test data loaded:', data.title);
+      
     } catch (error) {
       console.error('Error fetching test data:', error);
+      setError('Failed to load test data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -162,7 +176,7 @@ export default function TestSeriesPage() {
       ...prev,
       [questionId]: {
         ...prev[questionId],
-        flagged: !prev[questionId].flagged
+        isFlagged: !prev[questionId].isFlagged // <-- use isFlagged
       }
     }));
   };
@@ -232,7 +246,7 @@ export default function TestSeriesPage() {
   const currentQuestion = testData.questions[currentQuestionIndex];
   const currentAnswer = userAnswers[currentQuestion?.id];
   const answeredCount = Object.values(userAnswers).filter(a => a.selectedAnswer !== null).length;
-  const flaggedCount = Object.values(userAnswers).filter(a => a.flagged).length;
+  const flaggedCount = Object.values(userAnswers).filter(a => a.isFlagged).length;
 
   // Instructions screen
   if (showInstructions) {
@@ -386,7 +400,7 @@ export default function TestSeriesPage() {
                   <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                     Q{currentQuestion.questionNumber}
                   </span>
-                  {currentAnswer?.flagged && (
+                  {currentAnswer?.isFlagged && (
                     <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-medium">
                       🏃 Flagged
                     </span>
@@ -396,11 +410,11 @@ export default function TestSeriesPage() {
                 <button
                   onClick={() => toggleFlag(currentQuestion.id)}
                   className={`p-2 rounded-lg transition-colors ${
-                    currentAnswer?.flagged 
+                    currentAnswer?.isFlagged 
                       ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
                       : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
                   }`}
-                  title={currentAnswer?.flagged ? 'Remove flag' : 'Flag for review'}
+                  title={currentAnswer?.isFlagged ? 'Remove flag' : 'Flag for review'}
                 >
                   🏁
                 </button>
@@ -500,7 +514,7 @@ export default function TestSeriesPage() {
                 {testData.questions.map((question, index) => {
                   const answer = userAnswers[question.id];
                   const isAnswered = answer?.selectedAnswer !== null;
-                  const isFlagged = answer?.flagged;
+                  const isFlagged = answer?.isFlagged;
                   const isCurrent = index === currentQuestionIndex;
                   
                   return (
