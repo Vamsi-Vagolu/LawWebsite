@@ -4,7 +4,19 @@ const prisma = new PrismaClient();
 
 export async function seedAIBETest() {
   try {
-    // Create the AIBE test
+    // ensure a system user exists for the foreign-key `createdBy`
+    // adjust fields if your User model uses different required fields
+    let systemUser = await prisma.user.findFirst({ where: { email: 'system@local' } });
+    if (!systemUser) {
+      systemUser = await prisma.user.create({
+        data: {
+          name: 'System',
+          email: 'system@local'
+        }
+      });
+    }
+ 
+    // Create the AIBE test (use existing system user id for createdBy)
     const aibeTest = await prisma.test.create({
       data: {
         title: "AIBE-XVIII Mock Test - Set Code B",
@@ -15,7 +27,7 @@ export async function seedAIBETest() {
         totalQuestions: 100,
         passingScore: 40.0,
         isPublished: true,
-        createdBy: "system",
+        createdBy: systemUser.id,
       }
     });
 
@@ -146,14 +158,20 @@ export async function seedAIBETest() {
   }
 }
 
-if (require.main === module) {
-  seedAIBETest()
-    .then(() => {
-      console.log('🎉 AIBE Mock Test seeded successfully!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ Error seeding AIBE test:', error);
-      process.exit(1);
-    });
+// ESM-safe runner (works with ts-node in ESM mode and with node after compilation)
+async function runIfMain() {
+  try {
+    await seedAIBETest();
+    console.log('🎉 AIBE Mock Test seeded successfully!');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error seeding AIBE test:', error);
+    process.exit(1);
+  }
+}
+
+// Run when executed directly (ts-node or node)
+const entry = process.argv[1] ?? '';
+if (entry.endsWith('aibe-mock-test.ts') || entry.endsWith('aibe-mock-test.js')) {
+  runIfMain();
 }
