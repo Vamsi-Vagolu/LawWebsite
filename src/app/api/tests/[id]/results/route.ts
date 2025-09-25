@@ -36,7 +36,9 @@ export async function GET(
           title: "Constitutional Law - Fundamentals",
           description: "Mock test description",
           passingScore: 70
-        }
+        },
+        questions: [],
+        answers: {}
       };
       return NextResponse.json(mockResults);
     }
@@ -49,11 +51,24 @@ export async function GET(
         isCompleted: true
       },
       include: {
+        // include the test and its questions for detailed breakdown
         test: {
           select: {
+            id: true,
             title: true,
             description: true,
-            passingScore: true
+            passingScore: true,
+            questions: {
+              select: {
+                id: true,
+                questionNumber: true,
+                question: true,
+                options: true,
+                correctAnswer: true,
+                explanation: true
+              },
+              orderBy: { questionNumber: 'asc' }
+            }
           }
         }
       },
@@ -69,12 +84,22 @@ export async function GET(
 
     return NextResponse.json({
       id: testAttempt.id,
-      score: testAttempt.score || 0,
-      correctCount: testAttempt.correctCount || 0,
-      totalQuestions: testAttempt.totalQuestions || 0,
-      timeSpent: testAttempt.timeSpent || 0,
-      completedAt: testAttempt.completedAt?.toISOString(),
-      test: testAttempt.test ?? {}
+      score: testAttempt.score ?? 0,
+      correctCount: testAttempt.correctCount ?? 0,
+      totalQuestions:
+        testAttempt.totalQuestions ??
+        (testAttempt.test?.questions?.length ?? 0),
+      timeSpent: testAttempt.timeSpent ?? 0,
+      completedAt: testAttempt.completedAt?.toISOString() ?? null,
+      test: {
+        id: testAttempt.test?.id,
+        title: testAttempt.test?.title,
+        description: testAttempt.test?.description,
+        passingScore: testAttempt.test?.passingScore
+      },
+      // include detailed data frontend expects
+      questions: testAttempt.test?.questions ?? [],
+      answers: testAttempt.answers ?? {}
     });
 
   } catch (error) {
