@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 // import Footer from "../components/Footer"; // if you have one
 import SessionProviderWrapper from "./SessionProviderWrapper";
 import MaintenanceListener from '../components/MaintenanceListener';
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -33,6 +34,7 @@ export default function RootLayout({
           <MaintenanceListener />
           <Navbar />
           {children}
+          <Footer />
         </SessionProviderWrapper>
       </body>
     </html>
