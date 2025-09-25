@@ -166,7 +166,8 @@ export default function TestSeriesPage() {
       ...prev,
       [questionId]: {
         ...prev[questionId],
-        selectedAnswer: answer
+        selectedAnswer: answer,
+        isAnswered: true
       }
     }));
   };
@@ -215,6 +216,19 @@ export default function TestSeriesPage() {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`answers-${testId}`);
+    if (saved) {
+      setUserAnswers(JSON.parse(saved));
+    }
+  }, [testId]);
+
+  useEffect(() => {
+    if (testStarted && !testCompleted) {
+      localStorage.setItem(`answers-${testId}`, JSON.stringify(userAnswers));
+    }
+  }, [userAnswers, testId, testStarted, testCompleted]);
 
   if (loading) {
     return (

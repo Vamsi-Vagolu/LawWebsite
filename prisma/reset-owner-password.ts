@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const newPlain = "";
+  const newPlain = "12345";
   const hash = await bcrypt.hash(newPlain, 10);
 
   const user = await prisma.user.update({

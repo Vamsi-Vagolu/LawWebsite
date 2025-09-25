@@ -6,33 +6,31 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> } // ✅ Updated type
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET
     });
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Authentication required' }, 
+        { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const { id: testId } = await params; // ✅ Await params
+    const { id: testId } = await params;
 
     // Handle mock test results
     if (testId.startsWith('mock-')) {
-      // For mock tests, we'll need to store results temporarily
-      // For now, return a sample result
       const mockResults = {
         id: `mock-result-${testId}`,
         score: 75,
         correctCount: 38,
         totalQuestions: 50,
-        timeSpent: 45 * 60, // 45 minutes
+        timeSpent: 45 * 60,
         completedAt: new Date().toISOString(),
         test: {
           title: "Constitutional Law - Fundamentals",
@@ -40,7 +38,6 @@ export async function GET(
           passingScore: 70
         }
       };
-      
       return NextResponse.json(mockResults);
     }
 
@@ -65,7 +62,7 @@ export async function GET(
 
     if (!testAttempt) {
       return NextResponse.json(
-        { error: 'No completed test attempt found' }, 
+        { error: 'No completed test attempt found' },
         { status: 404 }
       );
     }
@@ -77,13 +74,13 @@ export async function GET(
       totalQuestions: testAttempt.totalQuestions || 0,
       timeSpent: testAttempt.timeSpent || 0,
       completedAt: testAttempt.completedAt?.toISOString(),
-      test: testAttempt.test
+      test: testAttempt.test ?? {}
     });
 
   } catch (error) {
     console.error('Error fetching test results:', error);
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     );
   } finally {
