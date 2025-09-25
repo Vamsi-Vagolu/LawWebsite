@@ -18,6 +18,7 @@ interface Stats {
   totalUsers: number;
   totalAdmins: number;
   totalNotes: number;
+  totalTests: number;
 }
 
 export default function OwnerDashboard() {
@@ -27,6 +28,7 @@ export default function OwnerDashboard() {
     totalUsers: 0,
     totalAdmins: 0,
     totalNotes: 0,
+    totalTests: 0,
   });
   const [maintenance, setMaintenance] = useState<MaintenanceSettings>({
     id: "",
@@ -215,7 +217,7 @@ export default function OwnerDashboard() {
         <SystemStatus />
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-blue-500 text-white p-6 rounded-xl shadow-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -269,6 +271,24 @@ export default function OwnerDashboard() {
                   viewBox="0 0 20 20"
                 >
                   <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm5 3a1 1 0 000 2h6a1 1 0 100-2H9zm0 4a1 1 0 100 2h6a1 1 0 100-2H9z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-orange-500 text-white p-6 rounded-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium opacity-90">Total Tests</h3>
+                <p className="text-3xl font-bold">{stats.totalTests}</p>
+              </div>
+              <div className="p-3 bg-orange-600 rounded-lg">
+                <svg
+                  className="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path fillRule="evenodd" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" clipRule="evenodd" />
                 </svg>
               </div>
             </div>
@@ -342,6 +362,22 @@ export default function OwnerDashboard() {
                 </h3>
                 <p className="text-sm text-gray-600">Configure firm settings</p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Info Section */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 000 16zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <h3 className="font-semibold text-blue-800 mb-2">Content Management</h3>
+              <p className="text-blue-700 text-sm">
+                Test management has been moved to the Admin Panel for better organization.
+                Access the Admin Panel to create and manage tests, questions, and monitor test performance.
+              </p>
             </div>
           </div>
         </div>

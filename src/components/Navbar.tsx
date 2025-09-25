@@ -53,11 +53,20 @@ export default function Navbar() {
   // Handle click outside to close menus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      // Close user menu if click is outside user menu
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
       }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
+
+      // Close mobile menu if click is outside mobile menu AND not on the mobile menu button
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(target)) {
+        // Check if the click was on the mobile menu button
+        const mobileButton = document.querySelector('[aria-label="Close menu"], [aria-label="Open menu"]');
+        if (mobileButton && !mobileButton.contains(target)) {
+          setMenuOpen(false);
+        }
       }
     };
 
@@ -455,19 +464,16 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Mobile menu button - FIX THE CLICK HANDLER */}
+            {/* Mobile menu button - Fixed click handler */}
             <button
-              className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={() => {
-                // ✅ If menu is open (showing X), close it
-                // ✅ If menu is closed (showing hamburger), open it
-                if (menuOpen) {
-                  setMenuOpen(false); // Close menu when X is clicked
-                } else {
-                  setMenuOpen(true); // Open menu when hamburger is clicked
-                }
+              className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 relative z-10"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(!menuOpen); // Toggle menu state
               }}
               aria-label={menuOpen ? "Close menu" : "Open menu"}
+              type="button"
             >
               {menuOpen ? (
                 // X icon - clicking will close menu

@@ -13,15 +13,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [totalUsers, totalAdmins, totalNotes] = await Promise.all([
+    const [totalUsers, totalAdmins, totalNotes, totalTests] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: { in: ['ADMIN', 'OWNER'] } } }),
-      prisma.note.count()
+      prisma.note.count(),
+      prisma.test.count()
     ]);
 
-    return NextResponse.json({ totalUsers, totalAdmins, totalNotes });
+    return NextResponse.json({ totalUsers, totalAdmins, totalNotes, totalTests });
   } catch (error) {
     console.error('Error fetching stats:', error);
-    return NextResponse.json({ totalUsers: 0, totalAdmins: 0, totalNotes: 0 });
+    return NextResponse.json({ totalUsers: 0, totalAdmins: 0, totalNotes: 0, totalTests: 0 });
   }
 }

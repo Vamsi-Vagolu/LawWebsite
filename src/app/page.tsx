@@ -9,6 +9,8 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [greeting, setGreeting] = useState("Hello");
+  const [tests, setTests] = useState([]);
+  const [notes, setNotes] = useState([]);
   
   const isLoggedIn = !!session?.user;
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User";
@@ -39,6 +41,23 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch tests data for all users
+  useEffect(() => {
+    const fetchTests = async () => {
+      try {
+        const response = await fetch('/api/tests');
+        if (response.ok) {
+          const result = await response.json();
+          setTests(result.data?.slice(0, 6) || []); // Show first 6 tests
+        }
+      } catch (error) {
+        console.error('Failed to fetch tests:', error);
+      }
+    };
+
+    fetchTests();
+  }, []);
+
   // Mock data for logged-in users
   const recentNotes = [
     { id: 1, title: "Constitutional Law Basics", subject: "Constitutional Law", date: "2024-01-15" },
@@ -48,7 +67,8 @@ export default function HomePage() {
 
   const stats = {
     notesCompleted: 45,
-    studyStreak: 7
+    studyStreak: 7,
+    testsCompleted: tests.length || 0
   };
 
   if (status === "loading") {
@@ -118,7 +138,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
               <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -133,6 +153,20 @@ export default function HomePage() {
                 </div>
               </div>
               
+              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold text-slate-800">{stats.testsCompleted}</p>
+                    <p className="text-gray-600">Tests Available</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -182,35 +216,84 @@ export default function HomePage() {
                     </svg>
                     <span className="text-sm font-medium">Notes</span>
                   </Link>
+                  <Link
+                    href="/tests"
+                    className="p-3 bg-green-100 hover:bg-green-200 rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium">Tests</span>
+                  </Link>
                 </div>
               </div>
             </div>
 
-            {/* Recent Notes */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-slate-800">Continue Reading</h3>
-                <Link href="/notes" className="text-amber-600 hover:text-amber-700 text-sm font-medium">
-                  View All →
-                </Link>
-              </div>
-              <div className="space-y-3">
-                {recentNotes.map((note) => (
-                  <div key={note.id} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
-                      <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Recent Notes */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold text-slate-800">Continue Reading</h3>
+                  <Link href="/notes" className="text-amber-600 hover:text-amber-700 text-sm font-medium">
+                    View All →
+                  </Link>
+                </div>
+                <div className="space-y-3">
+                  {recentNotes.map((note) => (
+                    <div key={note.id} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                      <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-slate-800">{note.title}</h4>
+                        <p className="text-sm text-gray-600">{note.subject} • {note.date}</p>
+                      </div>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-slate-800">{note.title}</h4>
-                      <p className="text-sm text-gray-600">{note.subject} • {note.date}</p>
+                  ))}
+                </div>
+              </div>
+
+              {/* Available Tests */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold text-slate-800">Practice Tests</h3>
+                  <Link href="/tests" className="text-green-600 hover:text-green-700 text-sm font-medium">
+                    View All →
+                  </Link>
+                </div>
+                <div className="space-y-3">
+                  {tests.length > 0 ? tests.slice(0, 3).map((test) => (
+                    <Link key={test.id} href={isLoggedIn ? `/tests/${test.id}` : '/login'} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-slate-800">{test.title}</h4>
+                        <p className="text-sm text-gray-600">
+                          {test.category} • {test.totalQuestions} questions
+                          {test.difficulty && ` • ${test.difficulty}`}
+                        </p>
+                        {test.bestScore !== null && (
+                          <p className="text-xs text-green-600 font-medium mt-1">Best Score: {test.bestScore}%</p>
+                        )}
+                      </div>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  )) : (
+                    <div className="text-center py-4 text-gray-500">
+                      <p>No tests available at the moment.</p>
                     </div>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -266,6 +349,71 @@ export default function HomePage() {
                     Expert legal consultation and services for individuals and businesses across various practice areas.
                   </p>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Available Tests Preview for Non-logged Users */}
+          <section className="py-16 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+                  Practice Tests Available
+                </h2>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                  Test your knowledge with our comprehensive practice tests. Login to access them.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {tests.length > 0 ? tests.slice(0, 6).map((test) => (
+                  <div key={test.id} className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      {test.difficulty && (
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                          test.difficulty === 'EASY' ? 'bg-green-100 text-green-800' :
+                          test.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {test.difficulty}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{test.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4">{test.description || 'Practice test to evaluate your knowledge.'}</p>
+                    <div className="space-y-2 text-sm text-gray-500 mb-4">
+                      <div className="flex justify-between">
+                        <span>Questions:</span>
+                        <span className="font-medium">{test.totalQuestions}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Category:</span>
+                        <span className="font-medium">{test.category}</span>
+                      </div>
+                      {test.timeLimit && (
+                        <div className="flex justify-between">
+                          <span>Time Limit:</span>
+                          <span className="font-medium">{Math.floor(test.timeLimit / 60)} minutes</span>
+                        </div>
+                      )}
+                    </div>
+                    <Link
+                      href="/login"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors inline-block text-center"
+                    >
+                      Login to Take Test
+                    </Link>
+                  </div>
+                )) : (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-gray-500 text-lg">No tests available at the moment.</p>
+                  </div>
+                )}
               </div>
             </div>
           </section>

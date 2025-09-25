@@ -75,55 +75,51 @@ export default function TestSeriesPage() {
   
   // UI state
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showWarning, setShowWarning] = useState(false);
-  const [warningMessage, setWarningMessage] = useState('');
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
 
-  // Enhanced persistence and visibility handling
+  // Simplified visibility handling - just tracks tab state and saves on hide
   useEffect(() => {
-    // Load saved state on component mount
-    loadTestState();
-
     // Handle visibility change (tab switching)
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsTabVisible(isVisible);
 
-      if (testStarted && !testCompleted) {
-        if (!isVisible) {
-          // Tab became hidden - pause timer and save state
-          lastVisibleTime.current = Date.now();
-          saveTestState();
-        } else {
-          // Tab became visible - resume timer
-          const now = Date.now();
-          const timePaused = now - lastVisibleTime.current;
-
-          // Show warning if user was away for more than 30 seconds
-          if (timePaused > 30000) {
-            setShowWarning(true);
-            setWarningMessage(`You were away for ${Math.round(timePaused / 1000)} seconds. The timer continued running.`);
-            setTimeout(() => setShowWarning(false), 5000);
-          }
-        }
+      if (testStarted && !testCompleted && !isVisible) {
+        // Tab became hidden - save state immediately
+        saveTestState();
       }
     };
-
-    // Add visibility change listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Prevent page refresh/navigation during test
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (testStarted && !testCompleted) {
+        // Save state before leaving
+        const currentState = {
+          userAnswers,
+          currentQuestionIndex,
+          timeRemaining,
+          testStartTime,
+          testStarted: true,
+          lastSaveTime: Date.now()
+        };
+        try {
+          localStorage.setItem(`test-state-${testId}`, JSON.stringify(currentState));
+        } catch (error) {
+          console.error('Failed to save state before unload:', error);
+        }
+
         e.preventDefault();
-        e.returnValue = 'Are you sure you want to leave? Your test progress will be saved but the timer will continue.';
+        e.returnValue = 'Are you sure you want to leave? Your test progress has been saved.';
         return e.returnValue;
       }
     };
 
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
@@ -133,7 +129,7 @@ export default function TestSeriesPage() {
         clearInterval(timerRef.current);
       }
     };
-  }, [testStarted, testCompleted]);
+  }, [testStarted, testCompleted, userAnswers, currentQuestionIndex, timeRemaining, testStartTime, testId]);
 
   // Load test data
   useEffect(() => {
@@ -175,30 +171,46 @@ export default function TestSeriesPage() {
   const loadTestState = () => {
     try {
       const savedState = localStorage.getItem(`test-state-${testId}`);
+      console.log('🔄 Loading test state:', savedState);
+
       if (savedState) {
         const state = JSON.parse(savedState);
+        console.log('📋 Parsed state:', state);
 
         // Only restore if the test was started but not completed
-        if (state.testStarted && !state.testCompleted) {
-          setUserAnswers(state.userAnswers || {});
+        if (state.testStarted && state.userAnswers && Object.keys(state.userAnswers).length > 0) {
+          console.log('✅ Restoring test state...');
+
+          // Restore all state immediately
+          setUserAnswers(state.userAnswers);
           setCurrentQuestionIndex(state.currentQuestionIndex || 0);
           setTestStarted(true);
           setTestStartTime(state.testStartTime);
           setShowInstructions(false);
 
-          // Calculate elapsed time since last save
+          // Calculate elapsed time since test started (more accurate than last save time)
           const now = Date.now();
-          const lastSave = state.lastSaveTime || now;
-          const elapsedSinceLastSave = Math.floor((now - lastSave) / 1000);
+          const testStartTime = state.testStartTime || now;
+          const elapsedSinceStart = Math.floor((now - testStartTime) / 1000);
+          const originalTimeLimit = testData?.timeLimit ? testData.timeLimit * 60 : 0;
 
-          // Update time remaining accounting for elapsed time
-          const newTimeRemaining = Math.max(0, (state.timeRemaining || 0) - elapsedSinceLastSave);
+          // Calculate remaining time based on elapsed time since test start
+          const newTimeRemaining = Math.max(0, originalTimeLimit - elapsedSinceStart);
           setTimeRemaining(newTimeRemaining);
+
+          console.log('⏰ Time calculation:', {
+            originalTimeLimit,
+            elapsedSinceStart,
+            newTimeRemaining
+          });
 
           if (newTimeRemaining <= 0) {
             // Time expired while away
-            handleSubmitTest();
+            console.log('⚠️ Time expired, auto-submitting...');
+            setTimeout(() => handleSubmitTest(), 1000);
           }
+
+          console.log(`✅ Test state restored. Elapsed: ${Math.floor(elapsedSinceStart / 60)}:${(elapsedSinceStart % 60).toString().padStart(2, '0')}`);
         }
       }
     } catch (error) {
@@ -248,12 +260,17 @@ export default function TestSeriesPage() {
           isFlagged: false
         };
       });
-      setUserAnswers(initialAnswers);
 
-      // Set timer based on real time limit (convert minutes to seconds)
+      // Set default values
+      setUserAnswers(initialAnswers);
       setTimeRemaining(apiResponse.data.timeLimit * 60);
 
-      console.log('✅ Real test data loaded:', apiResponse.data.title);
+      console.log('✅ Test data loaded, attempting to restore state...');
+
+      // Try to load saved state AFTER test data is loaded
+      setTimeout(() => {
+        loadTestState();
+      }, 100); // Small delay to ensure state is set
       
     } catch (error) {
       console.error('Error fetching test data:', error);
@@ -263,7 +280,7 @@ export default function TestSeriesPage() {
     }
   };
 
-  // Enhanced timer logic with persistence
+  // Fixed timer logic - runs continuously regardless of tab visibility
   useEffect(() => {
     if (!testStarted || testCompleted) {
       if (timerRef.current) {
@@ -273,19 +290,29 @@ export default function TestSeriesPage() {
       return;
     }
 
-    // Start timer
+    // Clear any existing timer before starting a new one
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    console.log('🕐 Starting timer, current time remaining:', timeRemaining);
+
+    // Start timer - runs continuously regardless of tab visibility
     timerRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
-        const newTime = prev - 1;
+        const newTime = Math.max(0, prev - 1);
 
         // Auto-save every 30 seconds
-        if (newTime % 30 === 0) {
+        if (newTime > 0 && newTime % 30 === 0) {
+          console.log('💾 Auto-saving at timer tick');
           saveTestState();
         }
 
         if (newTime <= 0) {
+          console.log('⏰ Time expired, auto-submitting');
           // Auto-submit when time runs out
-          handleSubmitTest();
+          setTimeout(() => handleSubmitTest(), 100);
           return 0;
         }
 
@@ -299,7 +326,7 @@ export default function TestSeriesPage() {
         timerRef.current = null;
       }
     };
-  }, [testStarted, testCompleted]);
+  }, [testStarted, testCompleted, testId]);
 
   // Format time display
   const formatTime = (seconds: number) => {
@@ -336,8 +363,26 @@ export default function TestSeriesPage() {
         }
       };
 
-      // Auto-save when answer changes
-      setTimeout(() => saveTestState(), 100);
+      // Immediately save to localStorage when answer changes
+      const currentState = {
+        userAnswers: updated,
+        currentQuestionIndex,
+        timeRemaining,
+        testStartTime,
+        testStarted: true,
+        lastSaveTime: Date.now()
+      };
+
+      try {
+        localStorage.setItem(`test-state-${testId}`, JSON.stringify(currentState));
+        console.log('💾 Answer saved immediately:', { questionId, answer, updated });
+        setAutoSaveStatus('saved');
+        setTimeout(() => setAutoSaveStatus(null), 1500);
+      } catch (error) {
+        console.error('Failed to save answer:', error);
+        setAutoSaveStatus('error');
+        setTimeout(() => setAutoSaveStatus(null), 2000);
+      }
 
       return updated;
     });
@@ -357,6 +402,13 @@ export default function TestSeriesPage() {
     if (index >= 0 && index < (testData?.questions.length || 0)) {
       setCurrentQuestionIndex(index);
     }
+  };
+
+  const handleExitTest = () => {
+    // Clear saved state and exit
+    clearTestState();
+    setTestCompleted(true);
+    router.push('/tests');
   };
 
   const handleSubmitTest = async () => {
@@ -393,9 +445,8 @@ export default function TestSeriesPage() {
     }
   };
 
-  // Legacy localStorage cleanup on component mount
+  // Clean up old localStorage entries on component mount
   useEffect(() => {
-    // Clean up old localStorage entries
     const oldAnswers = localStorage.getItem(`answers-${testId}`);
     if (oldAnswers) {
       localStorage.removeItem(`answers-${testId}`);
@@ -534,30 +585,30 @@ export default function TestSeriesPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Enhanced Header with timer and progress */}
       <div className="bg-white/95 backdrop-blur-sm shadow-lg border-b sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-gray-900 mb-1">{testData.title}</h1>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span>Question {currentQuestionIndex + 1} of {testData.totalQuestions}</span>
-                <span className="text-gray-400">•</span>
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 truncate">{testData.title}</h1>
+              <div className="flex items-center space-x-2 sm:space-x-4 text-xs sm:text-sm text-gray-600 flex-wrap">
+                <span>Q{currentQuestionIndex + 1}/{testData.totalQuestions}</span>
+                <span className="text-gray-400 hidden sm:inline">•</span>
                 <span className="flex items-center">
-                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                  {answeredCount} Answered
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full mr-1 sm:mr-2 animate-pulse"></div>
+                  {answeredCount}<span className="hidden sm:inline"> Answered</span>
                 </span>
                 {flaggedCount > 0 && (
                   <>
-                    <span className="text-gray-400">•</span>
+                    <span className="text-gray-400 hidden sm:inline">•</span>
                     <span className="flex items-center">
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
-                      {flaggedCount} Flagged
+                      <div className="w-2 h-2 sm:w-3 sm:h-3 bg-yellow-500 rounded-full mr-1 sm:mr-2 animate-pulse"></div>
+                      {flaggedCount}<span className="hidden sm:inline"> Flagged</span>
                     </span>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
               {/* Auto-save status */}
               {autoSaveStatus && (
                 <div className={`flex items-center text-xs px-2 py-1 rounded-full ${
@@ -568,7 +619,7 @@ export default function TestSeriesPage() {
                   {autoSaveStatus === 'saving' && (
                     <>
                       <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin mr-1"></div>
-                      Saving...
+                      <span className="hidden sm:inline">Saving...</span>
                     </>
                   )}
                   {autoSaveStatus === 'saved' && (
@@ -576,7 +627,7 @@ export default function TestSeriesPage() {
                       <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      Saved
+                      <span className="hidden sm:inline">Saved</span>
                     </>
                   )}
                   {autoSaveStatus === 'error' && (
@@ -584,20 +635,20 @@ export default function TestSeriesPage() {
                       <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      Error
+                      <span className="hidden sm:inline">Error</span>
                     </>
                   )}
                 </div>
               )}
 
               {/* Enhanced Timer */}
-              <div className={`font-mono text-lg font-bold px-4 py-2 rounded-xl shadow-md transition-all duration-300 ${
+              <div className={`font-mono text-sm sm:text-lg font-bold px-2 sm:px-4 py-1 sm:py-2 rounded-xl shadow-md transition-all duration-300 ${
                 timeRemaining < 300 ? 'bg-red-100 text-red-700 animate-pulse border-2 border-red-300' :
                 timeRemaining < 900 ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300' :
                 'bg-blue-100 text-blue-700 border-2 border-blue-300'
               }`}>
                 <div className="flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                   </svg>
                   {formatTime(timeRemaining)}
@@ -632,31 +683,20 @@ export default function TestSeriesPage() {
             </div>
           </div>
 
-          {/* Warning banner */}
-          {showWarning && (
-            <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3 animate-slideDown">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-orange-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <p className="text-sm text-orange-700">{warningMessage}</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6">
+        <div className="grid lg:grid-cols-4 gap-4 lg:gap-8">
           {/* Enhanced Question Panel */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 order-2 lg:order-1">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               {/* Enhanced Question Header */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-gray-100">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 sm:p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 sm:space-x-4">
                     <div className="relative">
-                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg">
                         Question {currentQuestion.questionNumber}
                       </span>
                       {currentAnswer?.isAnswered && (
@@ -669,7 +709,7 @@ export default function TestSeriesPage() {
                     </div>
 
                     {currentAnswer?.isFlagged && (
-                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium border border-yellow-200 animate-bounce">
+                      <span className="bg-yellow-100 text-yellow-800 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border border-yellow-200 animate-bounce hidden sm:inline-flex">
                         <svg className="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clipRule="evenodd" />
                         </svg>
@@ -680,7 +720,7 @@ export default function TestSeriesPage() {
 
                   <button
                     onClick={() => toggleFlag(currentQuestion.id)}
-                    className={`group relative p-3 rounded-xl transition-all duration-200 ${
+                    className={`group relative p-2 sm:p-3 rounded-xl transition-all duration-200 ${
                       currentAnswer?.isFlagged
                         ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200 shadow-md'
                         : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 shadow-sm'
@@ -697,11 +737,11 @@ export default function TestSeriesPage() {
                 </div>
               </div>
 
-              <div className="p-8">
+              <div className="p-4 sm:p-6 lg:p-8">
                 {/* Enhanced Question */}
-                <div className="mb-8">
-                  <div className="prose prose-lg max-w-none">
-                    <p className="text-xl text-gray-900 leading-relaxed font-medium">
+                <div className="mb-6 sm:mb-8">
+                  <div className="prose prose-base sm:prose-lg max-w-none">
+                    <p className="text-lg sm:text-xl text-gray-900 leading-relaxed font-medium">
                       {currentQuestion.question}
                     </p>
                   </div>
@@ -712,7 +752,7 @@ export default function TestSeriesPage() {
                   {Object.entries(currentQuestion.options).map(([option, text], index) => (
                     <div key={option} className="animate-fadeIn" style={{ animationDelay: `${index * 100}ms` }}>
                       <label
-                        className={`group flex items-start p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                        className={`group flex items-start p-3 sm:p-4 lg:p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.01] sm:hover:scale-[1.02] ${
                           currentAnswer?.selectedAnswer === option
                             ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg ring-2 ring-blue-200'
                             : 'border-gray-200 hover:border-blue-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 hover:shadow-md'
@@ -728,7 +768,7 @@ export default function TestSeriesPage() {
                         />
 
                         {/* Enhanced Radio Button */}
-                        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center mr-4 mt-1 transition-all duration-200 ${
+                        <div className={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center mr-3 sm:mr-4 mt-1 transition-all duration-200 ${
                           currentAnswer?.selectedAnswer === option
                             ? 'border-blue-500 bg-blue-500 shadow-lg'
                             : 'border-gray-300 group-hover:border-blue-400'
@@ -742,8 +782,8 @@ export default function TestSeriesPage() {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center mb-3">
-                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold mr-4 transition-colors ${
+                          <div className="flex items-center mb-2 sm:mb-3">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-bold mr-3 sm:mr-4 transition-colors ${
                               currentAnswer?.selectedAnswer === option
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-700'
@@ -751,7 +791,7 @@ export default function TestSeriesPage() {
                               {option}
                             </span>
                           </div>
-                          <p className={`text-base leading-relaxed transition-colors ${
+                          <p className={`text-sm sm:text-base leading-relaxed transition-colors ${
                             currentAnswer?.selectedAnswer === option
                               ? 'text-gray-900 font-medium'
                               : 'text-gray-700 group-hover:text-gray-900'
@@ -762,8 +802,8 @@ export default function TestSeriesPage() {
 
                         {/* Selection indicator */}
                         {currentAnswer?.selectedAnswer === option && (
-                          <div className="ml-4 text-blue-500 animate-fadeIn">
-                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="ml-2 sm:ml-4 text-blue-500 animate-fadeIn">
+                            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           </div>
@@ -774,43 +814,59 @@ export default function TestSeriesPage() {
                 </div>
 
                 {/* Enhanced Navigation */}
-                <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-6 mt-8 rounded-xl border-t border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <button
-                      onClick={() => goToQuestion(currentQuestionIndex - 1)}
-                      disabled={currentQuestionIndex === 0}
-                      className="group flex items-center px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md disabled:hover:shadow-sm"
-                    >
-                      <svg className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      Previous
-                    </button>
+                <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-3 sm:p-4 lg:p-6 mt-6 sm:mt-8 rounded-xl border-t border-gray-100">
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+                    <div className="flex space-x-3 order-2 sm:order-1">
+                      <button
+                        onClick={() => goToQuestion(currentQuestionIndex - 1)}
+                        disabled={currentQuestionIndex === 0}
+                        className="group flex items-center px-3 sm:px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md disabled:hover:shadow-sm"
+                      >
+                        <svg className="w-4 h-4 mr-1 sm:mr-2 group-hover:-translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="hidden sm:inline">Previous</span>
+                        <span className="sm:hidden">Prev</span>
+                      </button>
 
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <span className="bg-white px-3 py-1 rounded-full shadow-sm">
+                    </div>
+
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 order-1 sm:order-2">
+                      <span className="bg-white px-2 sm:px-3 py-1 rounded-full shadow-sm text-xs sm:text-sm">
                         {currentQuestionIndex + 1} of {testData.totalQuestions}
                       </span>
                     </div>
 
-                    <div className="flex space-x-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-3 justify-end order-3 w-full sm:w-auto">
                       {currentQuestionIndex === testData.questions.length - 1 ? (
-                        <button
-                          onClick={() => setShowSubmitDialog(true)}
-                          className="group flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-                        >
-                          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          Submit Test
-                        </button>
+                        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                          <button
+                            onClick={() => setShowExitDialog(true)}
+                            className="flex items-center justify-center flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
+                          >
+                            <svg className="w-4 h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                            <span className="hidden sm:inline">Exit Test</span>
+                            <span className="sm:hidden">Exit</span>
+                          </button>
+                          <button
+                            onClick={() => setShowSubmitDialog(true)}
+                            className="group flex items-center justify-center flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
+                          >
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Submit Test
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => goToQuestion(currentQuestionIndex + 1)}
-                          className="group flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                          className="group flex items-center justify-center w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
                         >
                           Next
-                          <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2 group-hover:translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                           </svg>
                         </button>
@@ -823,19 +879,20 @@ export default function TestSeriesPage() {
           </div>
 
           {/* Enhanced Question Navigator Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden sticky top-24">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-100">
-                <h3 className="font-bold text-gray-900 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+          <div className="lg:col-span-1 order-1 lg:order-2">
+            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg lg:shadow-xl border border-gray-100 overflow-hidden lg:sticky lg:top-24 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 border-b border-gray-100">
+                <h3 className="font-bold text-gray-900 flex items-center text-sm">
+                  <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                   </svg>
-                  Question Navigator
+                  Questions ({answeredCount}/{testData.totalQuestions})
                 </h3>
               </div>
 
-              <div className="p-4">
-                <div className="grid grid-cols-5 gap-2 mb-6">
+              <div className="p-3">
+                {/* Responsive question grid */}
+                <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-8 gap-1 mb-4">
                   {testData.questions.map((question, index) => {
                     const answer = userAnswers[question.id];
                     const isAnswered = answer?.selectedAnswer !== null;
@@ -846,97 +903,83 @@ export default function TestSeriesPage() {
                       <button
                         key={question.id}
                         onClick={() => goToQuestion(index)}
-                        className={`relative w-10 h-10 rounded-xl text-xs font-bold transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        className={`relative w-8 h-8 rounded-lg text-[10px] font-bold transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
                           isCurrent
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg ring-2 ring-blue-300 scale-110'
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md ring-1 ring-blue-400 scale-105'
                             : isAnswered && isFlagged
-                            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md hover:shadow-lg'
+                            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-sm'
                             : isAnswered
-                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md hover:shadow-lg'
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm'
                             : isFlagged
-                            ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-400 shadow-sm hover:shadow-md'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 shadow-sm hover:shadow-md'
+                            ? 'bg-yellow-100 text-yellow-800 border border-yellow-400'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
+                        title={`Question ${index + 1}${isAnswered ? ' - Answered' : ''}${isFlagged ? ' - Flagged' : ''}`}
                       >
                         {index + 1}
-                        {/* Status indicators */}
+                        {/* Smaller status indicators */}
                         {isAnswered && (
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                          <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-white"></div>
                         )}
                         {isFlagged && (
-                          <div className="absolute -top-1 -left-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-white"></div>
+                          <div className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-yellow-500 rounded-full border border-white"></div>
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Enhanced Legend */}
-                <div className="space-y-3 text-xs">
-                  <div className="flex items-center p-2 bg-green-50 rounded-lg">
-                    <div className="w-4 h-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded mr-3 shadow-sm"></div>
-                    <span className="text-gray-700 font-medium">Answered</span>
+                {/* Compact Legend */}
+                <div className="space-y-1 text-xs mb-4">
+                  <div className="flex items-center justify-between p-1">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded mr-2"></div>
+                      <span className="text-gray-600">Answered</span>
+                    </div>
+                    <span className="font-bold text-green-600">{answeredCount}</span>
                   </div>
-                  <div className="flex items-center p-2 bg-yellow-50 rounded-lg">
-                    <div className="w-4 h-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded mr-3 shadow-sm"></div>
-                    <span className="text-gray-700 font-medium">Flagged & Answered</span>
+                  <div className="flex items-center justify-between p-1">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded mr-2"></div>
+                      <span className="text-gray-600">Flagged</span>
+                    </div>
+                    <span className="font-bold text-yellow-600">{flaggedCount}</span>
                   </div>
-                  <div className="flex items-center p-2 bg-yellow-50 rounded-lg">
-                    <div className="w-4 h-4 bg-yellow-100 border-2 border-yellow-400 rounded mr-3"></div>
-                    <span className="text-gray-700 font-medium">Flagged Only</span>
-                  </div>
-                  <div className="flex items-center p-2 bg-gray-50 rounded-lg">
-                    <div className="w-4 h-4 bg-gray-200 rounded mr-3 shadow-sm"></div>
-                    <span className="text-gray-700 font-medium">Not Visited</span>
+                  <div className="flex items-center justify-between p-1">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-gray-300 rounded mr-2"></div>
+                      <span className="text-gray-600">Remaining</span>
+                    </div>
+                    <span className="font-bold text-gray-600">{testData.totalQuestions - answeredCount}</span>
                   </div>
                 </div>
 
-                {/* Enhanced Quick Stats */}
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <div className="space-y-4">
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Progress:</span>
-                        <span className="font-bold text-green-700">{answeredCount}/{testData.totalQuestions}</span>
-                      </div>
-                      <div className="w-full bg-green-200 rounded-full h-2 mt-2">
-                        <div
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${(answeredCount / testData.totalQuestions) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-blue-50 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-blue-600">{answeredCount}</div>
-                        <div className="text-xs text-gray-600">Answered</div>
-                      </div>
-                      <div className="bg-orange-50 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-orange-600">{testData.totalQuestions - answeredCount}</div>
-                        <div className="text-xs text-gray-600">Remaining</div>
-                      </div>
-                    </div>
-
-                    {flaggedCount > 0 && (
-                      <div className="bg-yellow-50 p-3 rounded-lg text-center border border-yellow-200">
-                        <div className="text-2xl font-bold text-yellow-600">{flaggedCount}</div>
-                        <div className="text-xs text-gray-600">Flagged for Review</div>
-                      </div>
-                    )}
+                {/* Compact Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-600">Progress</span>
+                    <span className="text-xs font-bold text-gray-800">{Math.round((answeredCount / testData.totalQuestions) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${(answeredCount / testData.totalQuestions) * 100}%` }}
+                    ></div>
                   </div>
                 </div>
 
-                {/* Enhanced Submit Button */}
-                <button
-                  onClick={() => setShowSubmitDialog(true)}
-                  className="w-full mt-6 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Submit Test
-                </button>
+                {/* Action Button */}
+                <div>
+                  <button
+                    onClick={() => setShowSubmitDialog(true)}
+                    className="w-full px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Submit Test
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -994,6 +1037,49 @@ export default function TestSeriesPage() {
                   ) : (
                     'Submit Test'
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Dialog */}
+      {showExitDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M7 12a5 5 0 1010 0 5 5 0 00-10 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Exit Test?</h3>
+              <div className="space-y-3 text-sm text-gray-600 mb-6">
+                <div className="flex justify-between">
+                  <span>Questions Answered:</span>
+                  <span className="font-medium">{answeredCount}/{testData?.totalQuestions}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Time Remaining:</span>
+                  <span className="font-medium">{formatTime(timeRemaining)}</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mb-6">
+                Your progress will be lost and you won't receive a score. Are you sure you want to exit the test?
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowExitDialog(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleExitTest}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Exit Test
                 </button>
               </div>
             </div>
