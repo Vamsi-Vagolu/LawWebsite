@@ -3,28 +3,17 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation'; // ✅ ADD THIS MISSING IMPORT
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { TestListItem, APIResponse } from '@/types/api';
 
-interface TestSeries {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  totalQuestions: number;
-  timeLimit: number;
-  passingScore: number;
-  userAttempts?: number;
-  bestScore?: number | null;
-  createdAt: string;
-}
+// Using TestListItem from API types instead of local interface
 
 export default function TestSeriesPage() {
   const { data: session, status } = useSession();
   const router = useRouter(); // ✅ NOW THIS WILL WORK
   
-  const [tests, setTests] = useState<TestSeries[]>([]);
+  const [tests, setTests] = useState<TestListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
@@ -43,18 +32,21 @@ export default function TestSeriesPage() {
 
   const fetchTests = async () => {
     try {
-      // Replace with actual API call once route is created
       const response = await fetch('/api/tests');
       if (response.ok) {
-        const data = await response.json();
-        setTests(data);
+        const apiResponse: APIResponse<TestListItem[]> = await response.json();
+        if (apiResponse.success && apiResponse.data) {
+          setTests(apiResponse.data);
+        } else {
+          console.error('API returned error:', apiResponse.error);
+          setTests(mockTests);
+        }
       } else {
-        // Fallback to mock data if API not ready
+        console.error('Failed to fetch tests:', response.status);
         setTests(mockTests);
       }
     } catch (error) {
       console.error('Error fetching tests:', error);
-      // Fallback to mock data
       setTests(mockTests);
     } finally {
       setLoading(false);
@@ -62,45 +54,51 @@ export default function TestSeriesPage() {
   };
 
   // Mock data for development
-  const mockTests: TestSeries[] = [
+  const mockTests: TestListItem[] = [
     {
       id: "1",
       title: "Constitutional Law Fundamentals",
       description: "Test your knowledge of constitutional principles, fundamental rights, and constitutional interpretation.",
       category: "Constitutional Law",
       difficulty: "MEDIUM",
-      totalQuestions: 50,
       timeLimit: 60,
+      totalQuestions: 50,
       passingScore: 70,
+      createdAt: "2024-01-15T10:00:00Z",
+      questionsPreview: [{ id: "q1", questionNumber: 1 }],
+      totalAttempts: 15,
       userAttempts: 2,
-      bestScore: 85,
-      createdAt: "2024-01-15T10:00:00Z"
+      bestScore: 85
     },
     {
-      id: "2", 
+      id: "2",
       title: "Criminal Law Essentials",
       description: "Comprehensive test covering criminal offenses, procedures, and legal principles.",
       category: "Criminal Law",
       difficulty: "HARD",
-      totalQuestions: 40,
       timeLimit: 45,
+      totalQuestions: 40,
       passingScore: 75,
+      createdAt: "2024-01-10T09:00:00Z",
+      questionsPreview: [{ id: "q1", questionNumber: 1 }],
+      totalAttempts: 8,
       userAttempts: 1,
-      bestScore: 78,
-      createdAt: "2024-01-10T09:00:00Z"
+      bestScore: 78
     },
     {
       id: "3",
-      title: "Contract Law Basics", 
+      title: "Contract Law Basics",
       description: "Foundation concepts in contract formation, performance, and breach.",
       category: "Contract Law",
       difficulty: "EASY",
-      totalQuestions: 30,
       timeLimit: 30,
+      totalQuestions: 30,
       passingScore: 65,
+      createdAt: "2024-01-20T14:00:00Z",
+      questionsPreview: [{ id: "q1", questionNumber: 1 }],
+      totalAttempts: 23,
       userAttempts: 0,
-      bestScore: null,
-      createdAt: "2024-01-20T14:00:00Z"
+      bestScore: null
     }
   ];
 

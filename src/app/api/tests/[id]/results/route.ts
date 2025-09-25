@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { createSuccessResponse, ErrorResponses } from '@/lib/api-utils';
 
 export async function GET(
   request: NextRequest,
@@ -15,10 +14,7 @@ export async function GET(
     });
 
     if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return ErrorResponses.UNAUTHORIZED();
     }
 
     const { id: testId } = await params;
@@ -40,7 +36,7 @@ export async function GET(
         questions: [],
         answers: {}
       };
-      return NextResponse.json(mockResults);
+      return createSuccessResponse(mockResults);
     }
 
     // Handle real test results
@@ -76,13 +72,10 @@ export async function GET(
     });
 
     if (!testAttempt) {
-      return NextResponse.json(
-        { error: 'No completed test attempt found' },
-        { status: 404 }
-      );
+      return ErrorResponses.NOT_FOUND('Test attempt');
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       id: testAttempt.id,
       score: testAttempt.score ?? 0,
       correctCount: testAttempt.correctCount ?? 0,
@@ -104,11 +97,6 @@ export async function GET(
 
   } catch (error) {
     console.error('Error fetching test results:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+    return ErrorResponses.INTERNAL_ERROR();
   }
 }

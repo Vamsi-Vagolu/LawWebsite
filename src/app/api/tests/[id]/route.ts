@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
+import { createSuccessResponse, ErrorResponses } from "@/lib/api-utils";
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +13,7 @@ export async function GET(
     // next-auth expects a Node/NextRequest shape — cast to any for typing
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!token) return ErrorResponses.UNAUTHORIZED();
 
     // fetch test meta (no questions here)
     const test = await prisma.test.findUnique({
@@ -28,8 +29,8 @@ export async function GET(
       },
     });
 
-    if (!test) return NextResponse.json({ error: "Test not found" }, { status: 404 });
-    if (!test.isPublished) return NextResponse.json({ error: "Test not available" }, { status: 403 });
+    if (!test) return ErrorResponses.NOT_FOUND("Test");
+    if (!test.isPublished) return ErrorResponses.FORBIDDEN();
 
     // fetch ALL questions explicitly (no take/limit)
     const questions = await prisma.question.findMany({
@@ -40,14 +41,12 @@ export async function GET(
     // remove correct answers before returning to client
     const safeQuestions = questions.map(({ correctAnswer, ...rest }) => rest);
 
-    return NextResponse.json({
+    return createSuccessResponse({
       ...test,
       questions: safeQuestions
     });
   } catch (error) {
     console.error("Error in tests/[id] route:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return ErrorResponses.INTERNAL_ERROR();
   }
 }

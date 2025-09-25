@@ -144,6 +144,8 @@ model Test {
   @@index([isPublished])
   @@index([createdBy])
   @@index([createdAt])
+  @@index([category, difficulty, isPublished]) // Composite index for filtering
+  @@index([isPublished, createdAt]) // For published tests ordered by date
 }
 
 model Question {
@@ -187,6 +189,8 @@ model TestAttempt {
   @@index([userId])
   @@index([isCompleted])
   @@index([createdAt])
+  @@index([testId, userId, isCompleted]) // Composite index for common queries
+  @@index([userId, isCompleted, score]) // For user performance queries
 }
 
 model MaintenanceSettings {

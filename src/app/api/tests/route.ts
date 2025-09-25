@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { createSuccessResponse, createErrorResponse, ErrorResponses } from '@/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +13,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!token?.sub) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return ErrorResponses.UNAUTHORIZED();
     }
 
     // 1) Fetch published tests with minimal includes
@@ -97,12 +96,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(res);
+    return createSuccessResponse(res);
 
   } catch (err) {
     console.error('Error fetching tests:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return ErrorResponses.INTERNAL_ERROR();
   }
 }
