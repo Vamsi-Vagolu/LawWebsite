@@ -4,6 +4,8 @@ import { useEffect, useState, ChangeEvent } from "react";
 import axios from "axios";
 import FileUpload from "./FileUpload";
 import MultiFileUpload from "./MultiFileUpload";
+import ModernConfirmDialog from "@/components/ui/ModernConfirmDialog";
+import { LoadingButton } from "@/components/ui/LoadingSpinner";
 
 interface BareAct {
   id: string;
@@ -21,6 +23,13 @@ export default function BareActsPanel() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -145,6 +154,7 @@ export default function BareActsPanel() {
       return;
     }
 
+    setSubmitting(true);
     try {
       const form = new FormData();
       form.append("title", formData.title);
@@ -178,13 +188,14 @@ export default function BareActsPanel() {
         return;
       }
 
-      alert(`Bare act ${editingBareAct ? 'updated' : 'created'} successfully!`);
       fetchBareActs();
       closeModal();
 
     } catch (error) {
       console.error("Error submitting form:", error);
       alert("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -196,6 +207,7 @@ export default function BareActsPanel() {
       return;
     }
 
+    setBulkSubmitting(true);
     try {
       const form = new FormData();
       form.append("category", bulkFormData.category);
@@ -218,27 +230,81 @@ export default function BareActsPanel() {
         return;
       }
 
-      alert(data.message || `Successfully uploaded ${bulkFormData.files.length} files!`);
       fetchBareActs();
       closeModal();
 
     } catch (error) {
       console.error("Error submitting bulk form:", error);
       alert("Network error. Please try again.");
+    } finally {
+      setBulkSubmitting(false);
     }
   };
 
-  const deleteBareAct = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this bare act?")) return;
+  const deleteBareAct = async () => {
+    if (!itemToDelete) return;
 
     try {
-      await axios.delete(`/api/admin/bare-acts/${id}`);
-      setBareActs((prev) => prev.filter((ba) => ba.id !== id));
-      alert("Bare act deleted successfully!");
+      await axios.delete(`/api/admin/bare-acts/${itemToDelete}`);
+      setBareActs((prev) => prev.filter((ba) => ba.id !== itemToDelete));
+      setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== itemToDelete));
+      setShowDeleteConfirm(false);
+      setItemToDelete(null);
     } catch (err) {
       console.error("Failed to delete bare act:", err);
       alert("Failed to delete bare act.");
     }
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleSelectAll = (category: "AIBE" | "ALL") => {
+    const categoryActs = filteredBareActs.filter(ba => ba.category === category);
+    const categoryIds = categoryActs.map(ba => ba.id);
+    const allSelected = categoryIds.every(id => selectedIds.includes(id));
+
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !categoryIds.includes(id)));
+    } else {
+      setSelectedIds(prev => [...new Set([...prev, ...categoryIds])]);
+    }
+  };
+
+  const handleSelectItem = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(selectedId => selectedId !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    try {
+      await axios.post('/api/admin/bare-acts/bulk-delete', {
+        ids: selectedIds
+      });
+
+      setBareActs(prev => prev.filter(ba => !selectedIds.includes(ba.id)));
+      setSelectedIds([]);
+      setShowBulkDeleteConfirm(false);
+    } catch (err) {
+      console.error("Failed to bulk delete:", err);
+      alert("Failed to delete selected bare acts.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedIds.length === 0) {
+      alert("Please select items to delete");
+      return;
+    }
+    setShowBulkDeleteConfirm(true);
   };
 
   const filteredBareActs = bareActs.filter((bareAct) => {
@@ -283,6 +349,15 @@ export default function BareActsPanel() {
         >
           Bulk Upload
         </button>
+        {selectedIds.length > 0 && (
+          <LoadingButton
+            loading={bulkDeleting}
+            onClick={handleBulkDeleteClick}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-400"
+          >
+            Delete {selectedIds.length} Selected
+          </LoadingButton>
+        )}
       </div>
 
       {loading ? (
@@ -291,9 +366,19 @@ export default function BareActsPanel() {
         <div className="space-y-6">
           {/* AIBE Bare Acts */}
           <div>
-            <h3 className="text-xl font-semibold mb-3 text-blue-600">
-              AIBE Bare Acts ({aibeBareActs.length})
-            </h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xl font-semibold text-blue-600">
+                AIBE Bare Acts ({aibeBareActs.length})
+              </h3>
+              {aibeBareActs.length > 0 && (
+                <button
+                  onClick={() => handleSelectAll("AIBE")}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  {aibeBareActs.every(ba => selectedIds.includes(ba.id)) ? "Deselect All" : "Select All"}
+                </button>
+              )}
+            </div>
             {aibeBareActs.length === 0 ? (
               <p className="text-gray-500 italic">No AIBE bare acts found.</p>
             ) : (
@@ -301,6 +386,14 @@ export default function BareActsPanel() {
                 <table className="w-full border border-gray-200 bg-white rounded-lg">
                   <thead>
                     <tr className="bg-blue-50">
+                      <th className="p-3 w-12">
+                        <input
+                          type="checkbox"
+                          checked={aibeBareActs.length > 0 && aibeBareActs.every(ba => selectedIds.includes(ba.id))}
+                          onChange={() => handleSelectAll("AIBE")}
+                          className="rounded"
+                        />
+                      </th>
                       <th className="p-3 text-left">Title</th>
                       <th className="p-3 text-left">Description</th>
                       <th className="p-3 text-center">Order</th>
@@ -309,7 +402,15 @@ export default function BareActsPanel() {
                   </thead>
                   <tbody>
                     {aibeBareActs.map((bareAct) => (
-                      <tr key={bareAct.id} className="border-t hover:bg-gray-50">
+                      <tr key={bareAct.id} className={`border-t hover:bg-gray-50 ${selectedIds.includes(bareAct.id) ? 'bg-blue-50' : ''}`}>
+                        <td className="p-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(bareAct.id)}
+                            onChange={() => handleSelectItem(bareAct.id)}
+                            className="rounded"
+                          />
+                        </td>
                         <td className="p-3 font-medium">{bareAct.title}</td>
                         <td className="p-3 text-gray-600">{bareAct.description || "—"}</td>
                         <td className="p-3 text-center">{bareAct.order}</td>
@@ -321,7 +422,7 @@ export default function BareActsPanel() {
                             Edit
                           </button>
                           <button
-                            onClick={() => deleteBareAct(bareAct.id)}
+                            onClick={() => handleDeleteClick(bareAct.id)}
                             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
                           >
                             Delete
@@ -337,9 +438,19 @@ export default function BareActsPanel() {
 
           {/* All Bare Acts */}
           <div>
-            <h3 className="text-xl font-semibold mb-3 text-green-600">
-              All Bare Acts ({allBareActs.length})
-            </h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xl font-semibold text-green-600">
+                All Bare Acts ({allBareActs.length})
+              </h3>
+              {allBareActs.length > 0 && (
+                <button
+                  onClick={() => handleSelectAll("ALL")}
+                  className="text-sm text-green-600 hover:text-green-800 underline"
+                >
+                  {allBareActs.every(ba => selectedIds.includes(ba.id)) ? "Deselect All" : "Select All"}
+                </button>
+              )}
+            </div>
             {allBareActs.length === 0 ? (
               <p className="text-gray-500 italic">No bare acts found.</p>
             ) : (
@@ -347,6 +458,14 @@ export default function BareActsPanel() {
                 <table className="w-full border border-gray-200 bg-white rounded-lg">
                   <thead>
                     <tr className="bg-green-50">
+                      <th className="p-3 w-12">
+                        <input
+                          type="checkbox"
+                          checked={allBareActs.length > 0 && allBareActs.every(ba => selectedIds.includes(ba.id))}
+                          onChange={() => handleSelectAll("ALL")}
+                          className="rounded"
+                        />
+                      </th>
                       <th className="p-3 text-left">Title</th>
                       <th className="p-3 text-left">Description</th>
                       <th className="p-3 text-center">Order</th>
@@ -355,7 +474,15 @@ export default function BareActsPanel() {
                   </thead>
                   <tbody>
                     {allBareActs.map((bareAct) => (
-                      <tr key={bareAct.id} className="border-t hover:bg-gray-50">
+                      <tr key={bareAct.id} className={`border-t hover:bg-gray-50 ${selectedIds.includes(bareAct.id) ? 'bg-green-50' : ''}`}>
+                        <td className="p-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(bareAct.id)}
+                            onChange={() => handleSelectItem(bareAct.id)}
+                            className="rounded"
+                          />
+                        </td>
                         <td className="p-3 font-medium">{bareAct.title}</td>
                         <td className="p-3 text-gray-600">{bareAct.description || "—"}</td>
                         <td className="p-3 text-center">{bareAct.order}</td>
@@ -367,7 +494,7 @@ export default function BareActsPanel() {
                             Edit
                           </button>
                           <button
-                            onClick={() => deleteBareAct(bareAct.id)}
+                            onClick={() => handleDeleteClick(bareAct.id)}
                             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
                           >
                             Delete
@@ -494,16 +621,18 @@ export default function BareActsPanel() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  disabled={submitting}
+                  className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button
+                <LoadingButton
                   type="submit"
+                  loading={submitting}
                   className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {editingBareAct ? "Update" : "Create"}
-                </button>
+                </LoadingButton>
               </div>
             </form>
           </div>
@@ -552,22 +681,51 @@ export default function BareActsPanel() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  disabled={bulkSubmitting}
+                  className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button
+                <LoadingButton
                   type="submit"
+                  loading={bulkSubmitting}
                   disabled={bulkFormData.files.length === 0}
                   className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
                 >
                   Upload {bulkFormData.files.length} Files
-                </button>
+                </LoadingButton>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Modern Confirmation Dialogs */}
+      <ModernConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setItemToDelete(null);
+        }}
+        onConfirm={deleteBareAct}
+        title="Delete Bare Act"
+        message="Are you sure you want to delete this bare act? This action cannot be undone and will permanently remove the file from the system."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      <ModernConfirmDialog
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        loading={bulkDeleting}
+        title="Delete Multiple Bare Acts"
+        message={`Are you sure you want to delete ${selectedIds.length} bare acts?\n\nThis action cannot be undone and will permanently remove all selected files from the system.`}
+        confirmText={`Delete ${selectedIds.length} Items`}
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }

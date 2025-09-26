@@ -3,6 +3,7 @@
 import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 import FileUpload from "./FileUpload"; // ✅ default import
+import { LoadingButton } from "@/components/ui/LoadingSpinner";
 
 interface Note {
   id: string;
@@ -34,6 +35,7 @@ export default function NotesPanel() {
   });
 
   const [titleAutoPopulated, setTitleAutoPopulated] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Fetch all notes
   const fetchNotes = async () => {
@@ -87,7 +89,8 @@ export default function NotesPanel() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
+    setSubmitting(true);
     try {
       const form = new FormData();
       form.append("title", formData.title);
@@ -122,13 +125,14 @@ export default function NotesPanel() {
       }
 
       // Success
-      alert(`Note ${editingNote ? 'updated' : 'created'} successfully!`);
       fetchNotes();
       closeModal();
 
     } catch (error) {
       console.error("Error submitting form:", error);
       alert("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -298,16 +302,18 @@ export default function NotesPanel() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 py-3 px-4 bg-gray-400 text-white rounded-lg"
+                  disabled={submitting}
+                  className="flex-1 py-3 px-4 bg-gray-400 text-white rounded-lg disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button
+                <LoadingButton
                   type="submit"
-                  className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg"
+                  loading={submitting}
+                  className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {editingNote ? "Update" : "Create"}
-                </button>
+                </LoadingButton>
               </div>
             </form>
           </div>
