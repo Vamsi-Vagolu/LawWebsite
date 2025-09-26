@@ -11,7 +11,7 @@ export default function MaintenanceListener() {
 
   useEffect(() => {
     // Skip all maintenance logic
-    if (process.env.NEXT_PUBLIC_DISABLE_MAINTENANCE_SYSTEM === 'true') {
+    if (process.env.NEXT_PUBLIC_DISABLE_MAINTENANCE_CHECKING === 'true') {
       return;
     }
 

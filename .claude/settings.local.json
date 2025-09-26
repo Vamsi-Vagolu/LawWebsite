@@ -6,7 +6,14 @@
       "Bash(npm run build:*)",
       "Bash(npm run lint)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx tsx:*)",
+      "Bash(set -a)",
+      "Bash(source:*)",
+      "Bash(set +a)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []
