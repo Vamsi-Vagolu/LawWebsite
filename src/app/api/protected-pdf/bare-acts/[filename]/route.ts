@@ -10,28 +10,26 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    // ✅ Await params before accessing properties
+    // Anyone can access bare acts (public content)
+    // But we still want to track access if user is logged in
+
     const { filename } = await params;
 
     if (!filename || filename.includes("..") || filename.includes("/")) {
       return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
     }
 
-    const filePath = path.join(process.cwd(), "private", "pdfs", filename);
-    
+    const filePath = path.join(process.cwd(), "private", "bare-acts", filename);
+
     try {
       const file = await fs.readFile(filePath);
-      
+
       return new NextResponse(new Uint8Array(file), {
         headers: {
           "Content-Type": "application/pdf",
           "Content-Disposition": `inline; filename="${filename}"`,
-          "Cache-Control": "private, no-cache",
+          "Cache-Control": "public, max-age=31536000", // Cache for 1 year since these are public documents
         },
       });
     } catch (fileError) {
@@ -40,7 +38,7 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error("Error serving PDF:", error);
+    console.error("Error serving bare acts PDF:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

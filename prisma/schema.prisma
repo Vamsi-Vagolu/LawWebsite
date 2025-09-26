@@ -57,6 +57,7 @@ model User {
   favoriteNotes    UserFavoriteNote[]
   testAttempts     TestAttempt[]
   createdTests     Test[] // Tests created by this user (if admin/owner)
+  bareActs         BareAct[] // Bare acts created by this user (if admin/owner)
 
   @@index([email])
   @@index([role])
@@ -214,6 +215,28 @@ model MaintenanceMode {
   updatedAt DateTime @updatedAt
 }
 
+model BareAct {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  category    BareActCategory
+  slug        String         @unique
+  pdfFile     String?
+  order       Int            @default(0) // For sorting acts within a category
+  createdBy   String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([slug])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([category, order]) // Composite index for category-based ordering
+}
+
 enum Role {
   USER
   ADMIN
@@ -224,4 +247,9 @@ enum Difficulty {
   EASY
   MEDIUM
   HARD
+}
+
+enum BareActCategory {
+  AIBE
+  ALL
 }

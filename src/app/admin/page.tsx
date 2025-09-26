@@ -5,11 +5,12 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import NotesPanel from "./NotesPanel";
 import TestsPanel from "./TestsPanel";
+import BareActsPanel from "./BareActsPanel";
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'notes' | 'tests'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'tests' | 'bare-acts'>('notes');
 
   if (status === "loading") {
     return (
@@ -77,12 +78,27 @@ export default function AdminPage() {
             </svg>
             Test Management
           </button>
+          <button
+            onClick={() => setActiveTab('bare-acts')}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              activeTab === 'bare-acts'
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <svg className="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+              <path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h1a1 1 0 001-1V3a2 2 0 012 2v6h-2a2 2 0 100 4h2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V5zM8 8a1 1 0 100-2 1 1 0 000 2zm0 3a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            Bare Acts Management
+          </button>
         </div>
 
         {/* Content */}
         <div className="space-y-8">
           {activeTab === 'notes' && <NotesPanel />}
           {activeTab === 'tests' && <TestsPanel />}
+          {activeTab === 'bare-acts' && <BareActsPanel />}
         </div>
       </div>
     </div>

@@ -18,17 +18,15 @@ export default function TestSeriesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
 
-  // ✅ IMPROVED LOGIN RESTRICTION
   useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session?.user) {
-      router.push('/login?callbackUrl=' + encodeURIComponent('/tests'));
-      return;
+    // Only fetch when we have a confirmed session
+    if (status === "authenticated" && session?.user) {
+      fetchTests();
+    } else if (status === "unauthenticated") {
+      // Stop loading if not authenticated
+      setLoading(false);
     }
-    
-    fetchTests();
-  }, [session, status, router]);
+  }, [session, status]);
 
   const fetchTests = async () => {
     try {
@@ -102,25 +100,56 @@ export default function TestSeriesPage() {
     }
   ];
 
-  // ✅ LOADING STATE DURING AUTH CHECK
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
+        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
-  // ✅ REDIRECT MESSAGE
-  if (!session?.user) {
+  if (!session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Please log in to access tests...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center border border-gray-200">
+          <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-6">
+            <svg
+              className="w-8 h-8 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">
+            Access Restricted
+          </h2>
+          <p className="text-gray-600 mb-6">Please login to view practice tests.</p>
+          <button
+            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg mb-4"
+            onClick={() => {
+              router.push("/login?callbackUrl=/tests");
+            }}
+          >
+            Login
+          </button>
+          <div className="text-sm text-gray-500">
+            Don&apos;t have an account?{" "}
+            <button
+              className="text-blue-600 hover:text-blue-700 font-medium underline"
+              onClick={() => {
+                router.push("/signup?callbackUrl=/tests");
+              }}
+            >
+              Sign up
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -234,7 +263,7 @@ export default function TestSeriesPage() {
           </div>
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
             <div className="text-3xl font-bold text-purple-600 mb-2">
-              {tests.filter(t => t.bestScore && t.bestScore >= t.passingScore).length}
+              {tests.filter(t => t.bestScore && t.passingScore && t.bestScore >= t.passingScore).length}
             </div>
             <div className="text-gray-600">Tests Passed</div>
           </div>
@@ -257,13 +286,13 @@ export default function TestSeriesPage() {
               <div className="p-6 pb-4">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getDifficultyColor(test.difficulty)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getDifficultyColor(test.difficulty || 'MEDIUM')}`}>
                       {test.difficulty}
                     </span>
                     <span className="text-xs text-gray-500">{test.category}</span>
                   </div>
                   {test.bestScore && (
-                    <div className={`text-right ${getScoreColor(test.bestScore, test.passingScore)}`}>
+                    <div className={`text-right ${getScoreColor(test.bestScore, test.passingScore || 60)}`}>
                       <div className="text-lg font-bold">{test.bestScore}%</div>
                       <div className="text-xs">Best Score</div>
                     </div>

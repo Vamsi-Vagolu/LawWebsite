@@ -33,6 +33,8 @@ export default function NotesPanel() {
     pdfFile: null,
   });
 
+  const [titleAutoPopulated, setTitleAutoPopulated] = useState(false);
+
   // Fetch all notes
   const fetchNotes = async () => {
     try {
@@ -52,6 +54,7 @@ export default function NotesPanel() {
   }, []);
 
   const openModal = (note?: Note) => {
+    setTitleAutoPopulated(false);
     if (note) {
       setEditingNote(note);
       setFormData({
@@ -70,6 +73,7 @@ export default function NotesPanel() {
   const closeModal = () => {
     setShowModal(false);
     setEditingNote(null);
+    setTitleAutoPopulated(false);
     setFormData({ title: "", description: "", category: "", pdfFile: null });
   };
 
@@ -210,15 +214,36 @@ export default function NotesPanel() {
             </h3>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col">
-                <label className="font-semibold">Title</label>
+                <label className="font-semibold">Title *</label>
                 <input
                   type="text"
                   name="title"
                   required
-                  className="border px-2 py-1 rounded"
+                  className={`border px-3 py-2 rounded transition-all duration-500 ${
+                    titleAutoPopulated
+                      ? "border-green-400 bg-green-50 ring-2 ring-green-200"
+                      : "border-gray-300"
+                  }`}
                   value={formData.title}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    handleChange(e);
+                    // Clear the auto-populated flag when user starts typing
+                    if (titleAutoPopulated) {
+                      setTitleAutoPopulated(false);
+                    }
+                  }}
+                  placeholder="Title will be auto-filled from PDF filename"
                 />
+                {!editingNote && !titleAutoPopulated && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    💡 Title will be automatically populated from the PDF filename. You can edit it before saving.
+                  </p>
+                )}
+                {titleAutoPopulated && (
+                  <p className="text-sm text-green-600 mt-1 animate-pulse">
+                    ✨ Title auto-populated from filename! You can edit it if needed.
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col">
@@ -244,9 +269,29 @@ export default function NotesPanel() {
 
               <FileUpload
                 file={formData.pdfFile}
-                setFile={(f) =>
-                  setFormData((prev) => ({ ...prev, pdfFile: f }))
-                }
+                setFile={(f) => {
+                  setFormData((prev) => {
+                    // Auto-populate title from filename only when adding new note and title is empty
+                    const shouldAutoPopulate = !editingNote && !prev.title;
+
+                    if (f && shouldAutoPopulate) {
+                      // Extract filename without extension and clean it up
+                      const fileName = f.name.replace(/\.pdf$/i, '');
+                      const cleanTitle = fileName
+                        .replace(/[_-]/g, ' ') // Replace underscores and hyphens with spaces
+                        .replace(/\b\w/g, (char) => char.toUpperCase()) // Title case
+                        .trim();
+
+                      // Set flag to show visual feedback
+                      setTitleAutoPopulated(true);
+                      setTimeout(() => setTitleAutoPopulated(false), 2000); // Clear after 2 seconds
+
+                      return { ...prev, pdfFile: f, title: cleanTitle };
+                    }
+
+                    return { ...prev, pdfFile: f };
+                  });
+                }}
               />
 
               <div className="flex gap-3 mt-4">

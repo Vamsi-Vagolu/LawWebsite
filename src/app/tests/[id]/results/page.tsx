@@ -61,8 +61,13 @@ export default function TestResultsPage() {
       setLoading(true);
       const response = await fetch(`/api/tests/${testId}/results`);
       if (response.ok) {
-        const data = await response.json();
-        setResults(data);
+        const apiResponse = await response.json();
+        // Handle the API response structure
+        if (apiResponse.success && apiResponse.data) {
+          setResults(apiResponse.data);
+        } else {
+          console.error('API error:', apiResponse.error);
+        }
       } else {
         console.error('Failed to fetch results:', response.status);
       }
@@ -77,7 +82,7 @@ export default function TestResultsPage() {
   if (!results) return <div className="min-h-screen flex items-center justify-center">Results not found</div>;
 
   const percentage = Math.round(results.score);
-  const passed = percentage >= results.test.passingScore;
+  const passed = percentage >= (results.test?.passingScore || 70);
 
   // Helpers for detailed display
   const questionList = results.questions || [];
@@ -106,7 +111,7 @@ export default function TestResultsPage() {
             )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Test Completed!</h1>
-          <p className="text-gray-600">{results.test.title}</p>
+          <p className="text-gray-600">{results.test?.title || 'Test'}</p>
         </div>
 
         {/* Score Card */}

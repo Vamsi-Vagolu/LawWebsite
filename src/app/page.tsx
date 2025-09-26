@@ -9,8 +9,8 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [greeting, setGreeting] = useState("Hello");
-  const [tests, setTests] = useState([]);
-  const [notes, setNotes] = useState([]);
+  const [tests, setTests] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
   
   const isLoggedIn = !!session?.user;
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User";
@@ -41,7 +41,7 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch tests data for all users
+  // Fetch tests and notes data for all users
   useEffect(() => {
     const fetchTests = async () => {
       try {
@@ -55,7 +55,20 @@ export default function HomePage() {
       }
     };
 
+    const fetchNotes = async () => {
+      try {
+        const response = await fetch('/api/notes/public?limit=6');
+        if (response.ok) {
+          const result = await response.json();
+          setNotes(result.data || []); // Show latest 6 notes
+        }
+      } catch (error) {
+        console.error('Failed to fetch notes:', error);
+      }
+    };
+
     fetchTests();
+    fetchNotes();
   }, []);
 
   // Mock data for logged-in users
@@ -353,8 +366,67 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Available Tests Preview for Non-logged Users */}
+          {/* Latest Notes Preview for Non-logged Users */}
           <section className="py-16 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+                  Latest Study Notes
+                </h2>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                  Access comprehensive study materials covering all major legal subjects. Login to read full content.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                {notes.length > 0 ? notes.slice(0, 6).map((note) => (
+                  <div key={note.id} className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800`}>
+                        {note.category || 'General'}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{note.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{note.description || 'Comprehensive study material covering key concepts and case studies.'}</p>
+                    <div className="space-y-2 text-sm text-gray-500 mb-4">
+                      <div className="flex justify-between">
+                        <span>Subject:</span>
+                        <span className="font-medium">{note.subject || note.category}</span>
+                      </div>
+                      {note.tags && (
+                        <div className="flex justify-between">
+                          <span>Tags:</span>
+                          <span className="font-medium">{Array.isArray(note.tags) ? note.tags.slice(0, 2).join(', ') : note.tags}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span>Added:</span>
+                        <span className="font-medium">{new Date(note.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <Link
+                      href="/login"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors inline-block text-center"
+                    >
+                      Login to Read
+                    </Link>
+                  </div>
+                )) : (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-gray-500 text-lg">No notes available at the moment.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Available Tests Preview for Non-logged Users */}
+          <section className="py-16 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">

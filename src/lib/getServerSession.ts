@@ -1,6 +1,6 @@
 // lib/getServerSession.ts
 import { getServerSession as getNextAuthSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 export const getServerSession = async () => {
   return await getNextAuthSession(authOptions);

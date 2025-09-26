@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma';
 import { createSuccessResponse, ErrorResponses } from '@/lib/api-utils';
 
@@ -71,10 +71,11 @@ export async function POST(request: NextRequest) {
         description,
         category,
         difficulty,
-        timeLimit: timeLimit ? parseInt(timeLimit) : null,
-        passingScore: passingScore ? parseInt(passingScore) : null,
+        timeLimit: timeLimit ? parseInt(timeLimit) : 60,
+        passingScore: passingScore ? parseInt(passingScore) : 60,
         isPublished: isPublished || false,
-        totalQuestions: 0
+        totalQuestions: 0,
+        createdBy: session.user.id
       }
     });
 
