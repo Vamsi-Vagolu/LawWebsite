@@ -88,101 +88,103 @@ const ModernPDFViewer = ({ pdfUrl, title, onDownload }: {
       }`}
     >
       {/* Advanced PDF Controls Header */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center text-white">
-            <div className="p-2 bg-white/10 rounded-lg mr-4">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+      <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-4 sm:px-6 py-3 sm:py-4 border-b">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center text-white min-w-0 flex-1">
+            <div className="p-2 bg-white/10 rounded-lg mr-3 sm:mr-4 flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
               </svg>
             </div>
-            <div>
-              <h3 className="font-bold text-lg">{title}</h3>
-              <p className="text-slate-300 text-sm">PDF Document • Interactive View</p>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-bold text-base sm:text-lg truncate">{title}</h3>
+              <p className="text-slate-300 text-xs sm:text-sm hidden sm:block">PDF Document • Interactive View</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Zoom Controls */}
+          <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
+            {/* Zoom Controls - Compact on Mobile */}
             <div className="flex items-center bg-white/10 rounded-lg p-1">
               <button
                 onClick={handleZoomOut}
                 disabled={zoom <= 50}
-                className="p-2 hover:bg-white/20 text-white rounded transition-colors disabled:opacity-50"
+                className="p-1.5 sm:p-2 hover:bg-white/20 text-white rounded transition-colors disabled:opacity-50"
                 title="Zoom Out"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                 </svg>
               </button>
-              <span className="px-3 py-1 text-white text-sm font-medium min-w-[4rem] text-center">
+              <span className="px-2 sm:px-3 py-1 text-white text-xs sm:text-sm font-medium min-w-[3rem] sm:min-w-[4rem] text-center">
                 {zoom}%
               </span>
               <button
                 onClick={handleZoomIn}
                 disabled={zoom >= 200}
-                className="p-2 hover:bg-white/20 text-white rounded transition-colors disabled:opacity-50"
+                className="p-1.5 sm:p-2 hover:bg-white/20 text-white rounded transition-colors disabled:opacity-50"
                 title="Zoom In"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </button>
               <button
                 onClick={resetZoom}
-                className="p-2 hover:bg-white/20 text-white rounded transition-colors ml-1"
+                className="p-1.5 sm:p-2 hover:bg-white/20 text-white rounded transition-colors ml-1"
                 title="Reset Zoom"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
+            {/* Action Buttons - Mobile Responsive */}
+            <div className="flex gap-1 sm:gap-2 flex-1 sm:flex-initial">
               <button
                 onClick={toggleFullscreen}
-                className="inline-flex items-center px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-all duration-200"
+                className="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm"
                 title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {isFullscreen ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   ) : (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                   )}
                 </svg>
-                {isFullscreen ? 'Exit' : 'Fullscreen'}
+                <span className="hidden sm:inline">{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
               </button>
 
               <button
                 onClick={() => window.open(pdfUrl, '_blank')}
-                className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200"
+                className="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm"
                 title="Open in New Tab"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
-                Open
+                <span className="hidden sm:inline">Open</span>
               </button>
 
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-2 sm:px-4 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm flex-1 sm:flex-initial justify-center"
                 title="Download PDF"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
                 {downloading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Downloading...
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent sm:mr-2"></div>
+                    <span className="hidden sm:inline ml-2">Downloading...</span>
                   </>
                 ) : (
-                  'Download'
+                  <>
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="hidden sm:inline">Download</span>
+                  </>
                 )}
               </button>
             </div>
@@ -193,7 +195,7 @@ const ModernPDFViewer = ({ pdfUrl, title, onDownload }: {
       {/* PDF Display with Loading State */}
       <div
         className="relative bg-gray-100"
-        style={{ height: isFullscreen ? 'calc(100vh - 80px)' : '85vh' }}
+        style={{ height: isFullscreen ? 'calc(100vh - 80px)' : window.innerWidth < 768 ? '60vh' : '85vh' }}
       >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
@@ -220,15 +222,15 @@ const ModernPDFViewer = ({ pdfUrl, title, onDownload }: {
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-slate-50 px-6 py-3 border-t">
-        <div className="flex items-center justify-between text-sm text-slate-600">
-          <div className="flex items-center gap-4">
+      <div className="bg-slate-50 px-4 sm:px-6 py-2 sm:py-3 border-t">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-slate-600">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Document loaded successfully</span>
+              <span>Document loaded</span>
             </div>
-            <div className="text-slate-400">•</div>
-            <span>Use toolbar controls for navigation</span>
+            <div className="text-slate-400 hidden sm:inline">•</div>
+            <span className="hidden sm:inline">Use toolbar controls for navigation</span>
           </div>
           <div className="text-xs bg-slate-200 px-2 py-1 rounded">
             PDF Viewer v2.0

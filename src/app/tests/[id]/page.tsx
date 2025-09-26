@@ -483,6 +483,28 @@ export default function TestPage() {
               </div>
             </div>
 
+            {/* Mobile Submit/Exit Buttons */}
+            <div className="flex lg:hidden gap-2">
+              <button
+                onClick={() => setShowSubmitDialog(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm flex items-center"
+              >
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Submit
+              </button>
+              <button
+                onClick={() => setShowExitDialog(true)}
+                className="px-4 py-2 bg-red-100 border border-red-200 text-red-600 rounded-lg hover:bg-red-200 text-sm flex items-center"
+              >
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Exit
+              </button>
+            </div>
+
             {timerEnabled ? (
               <div className={`font-mono text-lg font-bold px-4 py-2 rounded-xl shadow-md ${
                 timeRemaining < 300 ? 'bg-red-100 text-red-700 animate-pulse' :
@@ -527,7 +549,7 @@ export default function TestPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Question Panel */}
-          <div className="lg:col-span-2 order-2 lg:order-1">
+          <div className="lg:col-span-2 order-1">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               {/* Question Header */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-gray-100">
@@ -655,8 +677,8 @@ export default function TestPage() {
             </div>
           </div>
 
-          {/* Navigator Sidebar */}
-          <div className="lg:col-span-1 order-1 lg:order-2">
+          {/* Navigator Sidebar - Hidden on Mobile */}
+          <div className="lg:col-span-1 order-2 hidden lg:block">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden sticky top-4">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 border-b border-gray-100">
                 <h3 className="font-bold text-gray-900 flex items-center text-sm">
@@ -777,7 +799,7 @@ export default function TestPage() {
 
       {/* Submit Dialog */}
       {showSubmitDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
             <div className="text-center">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
@@ -842,7 +864,7 @@ export default function TestPage() {
 
       {/* Exit Dialog */}
       {showExitDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
             <div className="text-center">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">

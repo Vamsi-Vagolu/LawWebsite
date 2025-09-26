@@ -211,7 +211,7 @@ export default function NotesPanel() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50 p-4">
           <div className="bg-white p-6 rounded-lg w-full max-w-md sm:max-w-lg mx-auto max-h-[90vh] overflow-auto">
             <h3 className="text-xl font-bold mb-4">
               {editingNote ? "Edit Note" : "Add Note"}

@@ -57,10 +57,10 @@ export default function HomePage() {
 
     const fetchNotes = async () => {
       try {
-        const response = await fetch('/api/notes/public?limit=6');
+        const response = await fetch('/api/notes/public');
         if (response.ok) {
           const result = await response.json();
-          setNotes(result.data || []); // Show latest 6 notes
+          setNotes(result || []); // Show latest 6 notes
         }
       } catch (error) {
         console.error('Failed to fetch notes:', error);

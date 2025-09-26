@@ -91,7 +91,7 @@ export default function ModernConfirmDialog({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity z-50"
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-all duration-300 z-50"
         onClick={!loading ? onClose : undefined}
       />
 
