@@ -464,10 +464,62 @@ export default function TestPage() {
   // Main test interface
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      {/* Header with timer */}
-      <div className="bg-white/95 backdrop-blur-sm shadow-lg border-b sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Header with timer - Optimized for Mobile */}
+      <div className="bg-white/95 backdrop-blur-sm shadow-lg border-b z-20">
+        <div className="max-w-7xl mx-auto px-4 py-3 lg:py-4">
+          {/* Mobile Layout - Single Row */}
+          <div className="flex lg:hidden items-center justify-between gap-2">
+            {/* Left: Timer */}
+            <div className="flex items-center gap-2 min-w-0">
+              {timerEnabled ? (
+                <div className={`font-mono text-sm font-bold px-2 py-1 rounded-lg shadow-sm ${timeRemaining < 300 ? 'bg-red-100 text-red-700 animate-pulse' : timeRemaining < 900 ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+                  <div className="flex items-center">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                    {formatTime(timeRemaining)}
+                  </div>
+                </div>
+              ) : (
+                <div className="font-mono text-sm font-bold px-2 py-1 rounded-lg shadow-sm bg-green-100 text-green-700">
+                  <div className="flex items-center">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                    {formatTime(elapsedTime)}
+                  </div>
+                </div>
+              )}
+              <div className="text-xs text-gray-600 whitespace-nowrap">
+                Q{currentQuestionIndex + 1}/{testData.totalQuestions}
+              </div>
+            </div>
+
+            {/* Right: Submit/Exit Buttons */}
+            <div className="flex gap-1">
+              <button
+                onClick={() => setShowSubmitDialog(true)}
+                className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium text-xs flex items-center"
+              >
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Submit
+              </button>
+              <button
+                onClick={() => setShowExitDialog(true)}
+                className="px-3 py-1.5 bg-red-100 border border-red-200 text-red-600 rounded-md hover:bg-red-200 text-xs flex items-center"
+              >
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Exit
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Layout - Original */}
+          <div className="hidden lg:flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold text-gray-900 mb-1 truncate">{testData.title}</h1>
               <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -481,28 +533,6 @@ export default function TestPage() {
                   </>
                 )}
               </div>
-            </div>
-
-            {/* Mobile Submit/Exit Buttons */}
-            <div className="flex lg:hidden gap-2">
-              <button
-                onClick={() => setShowSubmitDialog(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm flex items-center"
-              >
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Submit
-              </button>
-              <button
-                onClick={() => setShowExitDialog(true)}
-                className="px-4 py-2 bg-red-100 border border-red-200 text-red-600 rounded-lg hover:bg-red-200 text-sm flex items-center"
-              >
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                Exit
-              </button>
             </div>
 
             {timerEnabled ? (
@@ -543,6 +573,20 @@ export default function TestPage() {
               ></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Test Title */}
+      <div className="lg:hidden bg-gradient-to-r from-slate-50 to-blue-50 px-4 py-3 border-b">
+        <h1 className="text-lg font-bold text-gray-900 truncate">{testData.title}</h1>
+        <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
+          <span>{answeredCount} Answered</span>
+          {flaggedCount > 0 && (
+            <>
+              <span>•</span>
+              <span>{flaggedCount} Flagged</span>
+            </>
+          )}
         </div>
       </div>
 
