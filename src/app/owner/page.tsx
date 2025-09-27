@@ -21,6 +21,37 @@ interface Stats {
   totalTests: number;
 }
 
+interface AdminMetrics {
+  admin: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    createdAt: string;
+  };
+  totalActivities: number;
+  recentActivities: any[];
+  activityBreakdown: Record<string, number>;
+  contentStats: {
+    notesCreated: number;
+    testsCreated: number;
+    blogPostsCreated: number;
+    contactResponsesCount: number;
+  };
+}
+
+interface AdminMetricsData {
+  admins: AdminMetrics[];
+  summary: {
+    totalAdmins: number;
+    totalAdminActivities: number;
+    adminLogins: number;
+    timeRangeDays: number;
+  };
+  mostActiveAdmins: AdminMetrics[];
+  recentAdminActions: any[];
+}
+
 export default function OwnerDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -44,6 +75,9 @@ export default function OwnerDashboard() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [environmentDisabled, setEnvironmentDisabled] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [adminMetrics, setAdminMetrics] = useState<AdminMetricsData | null>(null);
+  const [adminMetricsLoading, setAdminMetricsLoading] = useState(true);
+  const [metricsTimeRange, setMetricsTimeRange] = useState(30);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -81,6 +115,29 @@ export default function OwnerDashboard() {
       setLoading(false);
     }
   };
+
+  const fetchAdminMetrics = async () => {
+    try {
+      setAdminMetricsLoading(true);
+      const response = await fetch(`/api/owner/admin-metrics?days=${metricsTimeRange}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAdminMetrics(data.data);
+      } else {
+        console.error('Failed to fetch admin metrics:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching admin metrics:', error);
+    } finally {
+      setAdminMetricsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.user?.role === 'OWNER') {
+      fetchAdminMetrics();
+    }
+  }, [session, metricsTimeRange]);
 
   const handleMaintenanceToggle = () => {
     if (!maintenance.isEnabled && environmentDisabled) {
@@ -364,6 +421,202 @@ export default function OwnerDashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Admin Metrics Section */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-indigo-100 rounded-lg mr-3">
+                <svg className="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+                  <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Admin Activity Metrics</h2>
+                <p className="text-sm text-gray-600">Monitor admin performance and system usage</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <select
+                value={metricsTimeRange}
+                onChange={(e) => setMetricsTimeRange(parseInt(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+              >
+                <option value={7}>Last 7 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={90}>Last 90 days</option>
+              </select>
+              <button
+                onClick={fetchAdminMetrics}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {adminMetricsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+            </div>
+          ) : adminMetrics ? (
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm">Total Admins</p>
+                      <p className="text-2xl font-bold">{adminMetrics.summary.totalAdmins}</p>
+                    </div>
+                    <svg className="w-8 h-8 text-blue-200" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-sm">Admin Activities</p>
+                      <p className="text-2xl font-bold">{adminMetrics.summary.totalAdminActivities}</p>
+                    </div>
+                    <svg className="w-8 h-8 text-green-200" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm">Admin Logins</p>
+                      <p className="text-2xl font-bold">{adminMetrics.summary.adminLogins}</p>
+                    </div>
+                    <svg className="w-8 h-8 text-purple-200" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm">Time Range</p>
+                      <p className="text-2xl font-bold">{adminMetrics.summary.timeRangeDays}d</p>
+                    </div>
+                    <svg className="w-8 h-8 text-orange-200" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Most Active Admins */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Active Admins</h3>
+                <div className="space-y-3">
+                  {adminMetrics.mostActiveAdmins.slice(0, 3).map((adminData, index) => (
+                    <div key={adminData.admin.id} className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                          index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-500'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{adminData.admin.name}</p>
+                          <p className="text-sm text-gray-600">{adminData.admin.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900">{adminData.totalActivities}</p>
+                        <p className="text-sm text-gray-600">activities</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Admin Performance Table */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Performance Overview</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white rounded-lg shadow-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activities</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tests</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blogs</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacts</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {adminMetrics.admins.map((adminData) => (
+                        <tr key={adminData.admin.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{adminData.admin.name}</div>
+                              <div className="text-sm text-gray-500">{adminData.admin.role}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {adminData.totalActivities}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {adminData.contentStats.notesCreated}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {adminData.contentStats.testsCreated}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {adminData.contentStats.blogPostsCreated}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {adminData.contentStats.contactResponsesCount}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Admin Actions */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Admin Actions</h3>
+                <div className="space-y-2">
+                  {adminMetrics.recentAdminActions.slice(0, 10).map((action) => (
+                    <div key={action.id} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span className="text-sm text-gray-900">{action.user?.name}</span>
+                        <span className="text-sm text-gray-600">{action.activity}</span>
+                        {action.entityType && (
+                          <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                            {action.entityType}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(action.createdAt).toLocaleDateString()} {new Date(action.createdAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <p className="text-gray-500">No admin metrics data available</p>
+            </div>
+          )}
         </div>
 
         {/* Additional Info Section */}

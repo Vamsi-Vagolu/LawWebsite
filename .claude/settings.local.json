@@ -16,7 +16,14 @@
       "Bash(psql:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npm run lint:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(curl -X POST http://localhost:3000/api/contact -H \"Content-Type: application/json\" -d \"{\"\"name\"\":\"\"Test User\"\",\"\"email\"\":\"\"test@example.com\"\",\"\"subject\"\":\"\"Test Subject\"\",\"\"message\"\":\"\"Test message\"\",\"\"category\"\":\"\"general\"\"}\")",
+      "Bash(curl -X POST http://localhost:3001/api/contact -H \"Content-Type: application/json\" -d \"{\"\"name\"\":\"\"Test User\"\",\"\"email\"\":\"\"test@example.com\"\",\"\"subject\"\":\"\"Test Subject\"\",\"\"message\"\":\"\"Test message\"\",\"\"category\"\":\"\"general\"\"}\")",
+      "Bash(curl -X POST http://localhost:3001/api/contact -H \"Content-Type: application/json\" -d \"{\"\"name\"\":\"\"Test User 2\"\",\"\"email\"\":\"\"test2@example.com\"\",\"\"subject\"\":\"\"Test Subject 2\"\",\"\"message\"\":\"\"Test message 2\"\",\"\"category\"\":\"\"general\"\"}\")",
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

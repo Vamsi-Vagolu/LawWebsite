@@ -117,3 +117,25 @@ Key relationships:
 - Tailwind CSS with custom configuration
 - Database seeding available via `prisma/seed.ts`
 - Maintenance mode can be controlled during development via environment variables
+- # Error Type
+Console Error
+
+## Error Message
+PrismaClient is unable to run in this browser environment, or has been bundled for the browser (running in ``).
+If this is unexpected, please open an issue: https://pris.ly/prisma-prisma-bug-report
+
+
+    at trackAnalyticsEvent (src\lib\analytics.ts:43:18)
+    at async trackPageView (src\lib\analytics.ts:91:3)
+
+## Code Frame
+  41 |
+  42 |     // Create analytics event
+> 43 |     await prisma.analyticsEvent.create({
+     |                  ^
+  44 |       data: {
+  45 |         eventType: data.eventType,
+  46 |         eventName: data.eventName,
+
+Next.js version: 15.5.3 (Webpack)
+failed to create a blog from admin panel, correct the errors, and I want the individual blog page to be modren but simple

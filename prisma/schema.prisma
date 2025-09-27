@@ -58,6 +58,11 @@ model User {
   testAttempts     TestAttempt[]
   createdTests     Test[] // Tests created by this user (if admin/owner)
   bareActs         BareAct[] // Bare acts created by this user (if admin/owner)
+  contactResponses ContactSubmission[] // Contact submissions responded to by this user
+  blogPosts        BlogPost[] // Blog posts created by this user
+  blogViews        BlogView[] // Blog views by this user
+  analyticsEvents  AnalyticsEvent[] // Analytics events associated with this user
+  userActivities   UserActivity[] // Activities performed by this user
 
   @@index([email])
   @@index([role])
@@ -252,4 +257,181 @@ enum Difficulty {
 enum BareActCategory {
   AIBE
   ALL
+}
+
+// Contact Form Model
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String   @db.Text
+  category  ContactCategory @default(GENERAL)
+  status    ContactStatus   @default(NEW)
+  adminNotes String? @db.Text
+  respondedAt DateTime?
+  respondedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  responder User? @relation(fields: [respondedBy], references: [id])
+
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@index([email])
+}
+
+// Blog Model
+model BlogPost {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  excerpt     String?     @db.Text
+  content     String      @db.Text
+  featuredImage String?
+  status      BlogStatus  @default(DRAFT)
+  category    String?
+  tags        String[]    @default([])
+  authorId    String
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  author User @relation(fields: [authorId], references: [id])
+  views  BlogView[]
+
+  @@index([status])
+  @@index([authorId])
+  @@index([publishedAt])
+  @@index([slug])
+  @@index([category])
+}
+
+// Blog View Tracking
+model BlogView {
+  id        String   @id @default(cuid())
+  blogId    String
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  blog BlogPost @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User?    @relation(fields: [userId], references: [id])
+
+  @@index([blogId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([ipAddress])
+}
+
+// Analytics and Metrics Model
+model AnalyticsEvent {
+  id         String      @id @default(cuid())
+  eventType  EventType
+  eventName  String
+  userId     String?
+  sessionId  String?
+  ipAddress  String?
+  userAgent  String?
+  page       String?
+  referrer   String?
+  properties Json?       // Store additional event properties
+  createdAt  DateTime    @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([eventType])
+  @@index([eventName])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([page])
+}
+
+// Daily Analytics Summary
+model DailyAnalytics {
+  id                String   @id @default(cuid())
+  date              DateTime @unique @db.Date
+  totalPageViews    Int      @default(0)
+  uniqueVisitors    Int      @default(0)
+  totalSessions     Int      @default(0)
+  avgSessionTime    Float?   // in seconds
+  bounceRate        Float?   // percentage
+  newUsers          Int      @default(0)
+  returningUsers    Int      @default(0)
+  topPages          Json?    // Array of {page, views}
+  topReferrers      Json?    // Array of {referrer, count}
+  deviceTypes       Json?    // {desktop, mobile, tablet}
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([date])
+}
+
+// User Activity Tracking
+model UserActivity {
+  id         String       @id @default(cuid())
+  userId     String
+  activity   ActivityType
+  entityType String?      // e.g., 'note', 'test', 'blog'
+  entityId   String?
+  metadata   Json?        // Store additional activity data
+  createdAt  DateTime     @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([activity])
+  @@index([entityType])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+enum ContactCategory {
+  GENERAL
+  SUPPORT
+  FEEDBACK
+  PARTNERSHIP
+  OTHER
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EventType {
+  PAGE_VIEW
+  USER_ACTION
+  SYSTEM_EVENT
+}
+
+enum ActivityType {
+  LOGIN
+  LOGOUT
+  VIEW_NOTE
+  DOWNLOAD_NOTE
+  FAVORITE_NOTE
+  START_TEST
+  COMPLETE_TEST
+  SEARCH
+  CONTACT_FORM
+  BLOG_VIEW
+  PROFILE_UPDATE
 }

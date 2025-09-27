@@ -1,108 +1,180 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FIRM_NAME } from "../../config";
 
-// Enhanced blog data with more details
-const blogPosts = [
-  {
-    id: 1,
-    title: "How to Prepare for Law Exams: A Comprehensive Guide",
-    description: "Master effective study strategies, time management techniques, and essential resources to excel in your law examinations.",
-    category: "Exam Tips",
-    author: "Dr. Priya Sharma",
-    date: "2024-01-15",
-    readTime: "8 min read",
-    tags: ["study-tips", "exams", "preparation"],
-    featured: true
-  },
-  {
-    id: 2,
-    title: "Important Landmark Judgments of 2024",
-    description: "Comprehensive analysis of recent Supreme Court judgments and their far-reaching implications on Indian jurisprudence.",
-    category: "Judgments",
-    author: "Adv. Rajesh Kumar",
-    date: "2024-01-12",
-    readTime: "12 min read",
-    tags: ["judgments", "supreme-court", "analysis"],
-    featured: true
-  },
-  {
-    id: 3,
-    title: "Diverse Career Paths in Law: Beyond Traditional Practice",
-    description: "Explore unconventional legal careers in corporate law, legal tech, policy-making, and international organizations.",
-    category: "Career",
-    author: "Prof. Anita Verma",
-    date: "2024-01-10",
-    readTime: "10 min read",
-    tags: ["career", "opportunities", "legal-profession"],
-    featured: false
-  },
-  {
-    id: 4,
-    title: "Essential Law Books Every Student Must Read",
-    description: "Curated list of fundamental legal texts, commentaries, and contemporary works for comprehensive legal education.",
-    category: "Resources",
-    author: "Librarian Team",
-    date: "2024-01-08",
-    readTime: "6 min read",
-    tags: ["books", "resources", "study-materials"],
-    featured: false
-  },
-  {
-    id: 5,
-    title: "Mastering Case Study Analysis: A Step-by-Step Approach",
-    description: "Learn the art of dissecting complex legal cases and presenting compelling arguments with practical examples.",
-    category: "Study Skills",
-    author: "Dr. Vikram Singh",
-    date: "2024-01-05",
-    readTime: "9 min read",
-    tags: ["case-study", "analysis", "methodology"],
-    featured: false
-  },
-  {
-    id: 6,
-    title: "Technology in Legal Practice: The Future is Now",
-    description: "Discover how AI, blockchain, and legal tech are revolutionizing the practice of law and what it means for legal professionals.",
-    category: "Technology",
-    author: "Tech Legal Team",
-    date: "2024-01-03",
-    readTime: "11 min read",
-    tags: ["legal-tech", "ai", "innovation"],
-    featured: true
-  }
-];
-
-const categories = ["All", "Exam Tips", "Judgments", "Career", "Resources", "Study Skills", "Technology"];
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  category?: string;
+  tags: string[];
+  publishedAt: string;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  _count: {
+    views: number;
+  };
+}
 
 export default function BlogPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("date");
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<string[]>(["All"]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Track page view
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      fetch('/api/analytics/page-view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: '/blog' })
+      }).catch(console.error);
+    }
+  }, []);
+
+  // Fetch blog posts
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/blogs');
+        if (response.ok) {
+          const result = await response.json();
+          setBlogPosts(result.data.blogs || []);
+
+          // Extract unique categories
+          const uniqueCategories = ["All", ...new Set(
+            result.data.blogs
+              .map((post: BlogPost) => post.category)
+              .filter((cat: string) => cat)
+          )];
+          setCategories(uniqueCategories);
+        } else {
+          setError('Failed to load blog posts');
+        }
+      } catch (err) {
+        console.error('Error fetching blogs:', err);
+        setError('Failed to load blog posts');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBlogs();
+  }, []);
 
   // Filter and sort posts
   const filteredPosts = blogPosts
     .filter(post => {
       const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           post.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (post.excerpt && post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||
                            post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       if (sortBy === "date") {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
       } else if (sortBy === "title") {
         return a.title.localeCompare(b.title);
+      } else if (sortBy === "views") {
+        return b._count.views - a._count.views;
       }
       return 0;
     });
 
-  const featuredPosts = blogPosts.filter(post => post.featured);
+  const featuredPosts = filteredPosts.slice(0, 3); // Show top 3 as featured
+
+  const getReadTime = (excerpt?: string) => {
+    if (!excerpt) return "5 min read";
+    const words = excerpt.split(' ').length;
+    const readTime = Math.ceil(words / 200); // Average reading speed
+    return `${readTime} min read`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          {/* Enhanced loading animation */}
+          <div className="relative mb-8">
+            <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+            <div className="absolute top-0 left-0 w-20 h-20 border-4 border-transparent border-t-blue-400 rounded-full animate-ping mx-auto opacity-30"></div>
+            <div className="absolute top-2 left-2 w-16 h-16 border-2 border-transparent border-t-blue-300 rounded-full animate-spin mx-auto" style={{animationDirection: 'reverse', animationDuration: '3s'}}></div>
+          </div>
+
+          {/* Loading text with animation */}
+          <div className="space-y-3 mb-6">
+            <h2 className="text-xl font-semibold text-slate-800 animate-pulse">Loading Blog Posts</h2>
+            <div className="flex items-center justify-center space-x-1">
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            </div>
+          </div>
+
+          {/* Loading skeleton cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 animate-pulse">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-4 bg-gray-300 rounded-full w-20 animate-shimmer"></div>
+                  <div className="h-3 bg-gray-300 rounded-full w-16 animate-shimmer"></div>
+                </div>
+                <div className="space-y-3">
+                  <div className="h-5 bg-gray-300 rounded-lg w-full animate-shimmer"></div>
+                  <div className="h-5 bg-gray-300 rounded-lg w-4/5 animate-shimmer"></div>
+                  <div className="h-4 bg-gray-300 rounded-lg w-full animate-shimmer"></div>
+                  <div className="h-4 bg-gray-300 rounded-lg w-3/4 animate-shimmer"></div>
+                  <div className="h-4 bg-gray-300 rounded-lg w-5/6 animate-shimmer"></div>
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div className="h-4 bg-gray-300 rounded-full w-24 animate-shimmer"></div>
+                  <div className="h-3 bg-gray-300 rounded-full w-12 animate-shimmer"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-gray-600 mt-6 animate-pulse-soft">Fetching the latest articles...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Failed to Load Blog Posts</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 animate-fadeIn">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-slate-600 via-slate-700 to-gray-800 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
@@ -132,37 +204,40 @@ export default function BlogPage() {
                     <span className="px-3 py-1 bg-amber-600 text-white text-xs font-semibold rounded-full">
                       FEATURED
                     </span>
-                    <span className="text-xs text-amber-700 font-medium">{post.readTime}</span>
+                    <span className="text-xs text-amber-700 font-medium">{getReadTime(post.excerpt)}</span>
                   </div>
-                  
+
                   <div className="mb-4">
                     <span className="text-sm px-3 py-1 bg-white/80 text-amber-800 rounded-full font-medium">
-                      {post.category}
+                      {post.category || 'General'}
                     </span>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-slate-800 mb-3 line-clamp-2">
                     {post.title}
                   </h3>
-                  
+
                   <p className="text-gray-700 mb-4 line-clamp-3">
-                    {post.description}
+                    {post.excerpt || 'Click to read this interesting article...'}
                   </p>
-                  
+
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                    <span>By {post.author}</span>
-                    <span>{new Date(post.date).toLocaleDateString()}</span>
+                    <span>By {post.author.name || post.author.email}</span>
+                    <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
                   </div>
-                  
-                  <Link
-                    href={`/blog/${post.id}`}
-                    className="inline-flex items-center text-amber-700 font-semibold hover:text-amber-800 transition-colors"
-                  >
-                    Read Article
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
+
+                  <div className="flex items-center justify-between">
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="inline-flex items-center text-amber-700 font-semibold hover:text-amber-800 transition-colors"
+                    >
+                      Read Article
+                      <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                    <span className="text-xs text-gray-500">{post._count.views} views</span>
+                  </div>
                 </article>
               ))}
             </div>
@@ -218,6 +293,7 @@ export default function BlogPage() {
               >
                 <option value="date">Sort by Date</option>
                 <option value="title">Sort by Title</option>
+                <option value="views">Sort by Views</option>
               </select>
             </div>
           </div>
@@ -258,27 +334,20 @@ export default function BlogPage() {
               {filteredPosts.map((post) => (
                 <article key={post.id} className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-4">
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                      post.category === 'Exam Tips' ? 'bg-blue-100 text-blue-800' :
-                      post.category === 'Judgments' ? 'bg-purple-100 text-purple-800' :
-                      post.category === 'Career' ? 'bg-green-100 text-green-800' :
-                      post.category === 'Resources' ? 'bg-orange-100 text-orange-800' :
-                      post.category === 'Study Skills' ? 'bg-pink-100 text-pink-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {post.category}
+                    <span className="text-xs px-3 py-1 rounded-full font-medium bg-blue-100 text-blue-800">
+                      {post.category || 'General'}
                     </span>
-                    <span className="text-xs text-gray-500 font-medium">{post.readTime}</span>
+                    <span className="text-xs text-gray-500 font-medium">{getReadTime(post.excerpt)}</span>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-slate-800 mb-3 line-clamp-2 hover:text-amber-600 transition-colors">
                     {post.title}
                   </h3>
-                  
+
                   <p className="text-gray-600 mb-4 line-clamp-3">
-                    {post.description}
+                    {post.excerpt || 'Click to read this interesting article...'}
                   </p>
-                  
+
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1 mb-4">
                     {post.tags.slice(0, 3).map((tag) => (
@@ -287,21 +356,24 @@ export default function BlogPage() {
                       </span>
                     ))}
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>By {post.author}</span>
-                    <span>{new Date(post.date).toLocaleDateString()}</span>
+                    <span>By {post.author.name || post.author.email}</span>
+                    <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
                   </div>
-                  
-                  <Link
-                    href={`/blog/${post.id}`}
-                    className="inline-flex items-center text-amber-600 font-semibold hover:text-amber-700 transition-colors group"
-                  >
-                    Read Full Article
-                    <svg className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
+
+                  <div className="flex items-center justify-between">
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="inline-flex items-center text-amber-600 font-semibold hover:text-amber-700 transition-colors group"
+                    >
+                      Read Full Article
+                      <svg className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                    <span className="text-xs text-gray-400">{post._count.views} views</span>
+                  </div>
                 </article>
               ))}
             </div>
