@@ -16,10 +16,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ✅ ADD LOGIN PROTECTION FOR TEST ROUTES
-  const protectedRoutes = ['/tests', '/admin', '/owner'];
-  const requiresAuth = protectedRoutes.some(route => 
-    pathname.startsWith(route) && pathname !== '/tests/public' // Optional: allow some public test routes
+  // ✅ ADD LOGIN PROTECTION FOR ADMIN/OWNER ROUTES (tests handled by component)
+  const protectedRoutes = ['/admin', '/owner'];
+  const requiresAuth = protectedRoutes.some(route =>
+    pathname.startsWith(route)
   );
 
   if (requiresAuth) {

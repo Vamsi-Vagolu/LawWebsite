@@ -91,14 +91,6 @@ export default function Footer() {
                     href: "/notes"
                   },
                   {
-                    name: "Admin",
-                    href: "/admin"
-                  },
-                  {
-                    name: "Owner",
-                    href: "/owner"
-                  },
-                  {
                     name: "Blog",
                     href: "/blog"
                   },

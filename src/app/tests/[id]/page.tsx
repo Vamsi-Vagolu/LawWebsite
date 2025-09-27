@@ -54,14 +54,8 @@ export default function TestPage() {
   // Simple storage key
   const storageKey = `test_${testId}`;
 
-  // Authentication check
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session) {
-      router.push('/login');
-      return;
-    }
-  }, [session, status, router]);
+  // Authentication check - removed immediate redirect
+  // Now handled in the render logic below
 
   // Load test data
   useEffect(() => {
@@ -101,6 +95,7 @@ export default function TestPage() {
     };
 
     fetchTestData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testId, session, status]);
 
   // Simple state restoration (only on page load)
@@ -186,6 +181,7 @@ export default function TestPage() {
         timerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testStarted, testCompleted, timerEnabled, timeRemaining > 0]);
 
   // Elapsed time counter for no-timer tests
@@ -208,6 +204,7 @@ export default function TestPage() {
     if (testStarted) {
       saveTestState();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testStarted, currentQuestionIndex, userAnswers]);
 
   // Clean up on unmount
@@ -362,6 +359,54 @@ export default function TestPage() {
     );
   }
 
+  // Show restricted access for non-authenticated users
+  if (status !== 'loading' && !session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center border border-gray-200">
+          <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-6">
+            <svg
+              className="w-8 h-8 text-amber-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">
+            Access Restricted
+          </h2>
+          <p className="text-gray-600 mb-6">Please login to access this practice test.</p>
+          <button
+            className="w-full px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg mb-4"
+            onClick={() => {
+              router.push(`/login?callbackUrl=/tests/${testId}`);
+            }}
+          >
+            Login
+          </button>
+          <div className="text-sm text-gray-500">
+            Don&apos;t have an account?{" "}
+            <button
+              className="text-amber-600 hover:text-amber-700 font-medium underline"
+              onClick={() => {
+                router.push(`/signup?callbackUrl=/tests/${testId}`);
+              }}
+            >
+              Sign up
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show instructions with timer option
   if (showInstructions) {
     return (
@@ -464,6 +509,20 @@ export default function TestPage() {
   // Main test interface
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Mobile Test Title - Above Header */}
+      <div className="lg:hidden bg-gradient-to-r from-slate-50 to-blue-50 px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 truncate">{testData.title}</h1>
+        <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
+          <span>{answeredCount} Answered</span>
+          {flaggedCount > 0 && (
+            <>
+              <span>•</span>
+              <span>{flaggedCount} Flagged</span>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Header with timer - Optimized for Mobile */}
       <div className="bg-white/95 backdrop-blur-sm shadow-lg border-b z-20">
         <div className="max-w-7xl mx-auto px-4 py-3 lg:py-4">
@@ -576,19 +635,6 @@ export default function TestPage() {
         </div>
       </div>
 
-      {/* Mobile Test Title */}
-      <div className="lg:hidden bg-gradient-to-r from-slate-50 to-blue-50 px-4 py-3 border-b">
-        <h1 className="text-lg font-bold text-gray-900 truncate">{testData.title}</h1>
-        <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
-          <span>{answeredCount} Answered</span>
-          {flaggedCount > 0 && (
-            <>
-              <span>•</span>
-              <span>{flaggedCount} Flagged</span>
-            </>
-          )}
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid lg:grid-cols-3 gap-8">
@@ -918,7 +964,7 @@ export default function TestPage() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Exit Test?</h3>
               <p className="text-sm text-gray-500 mb-6">
-                Your progress will be lost and you won't receive a score. Are you sure you want to exit the test?
+                Your progress will be lost and you won&apos;t receive a score. Are you sure you want to exit the test?
               </p>
               <div className="flex space-x-3">
                 <button

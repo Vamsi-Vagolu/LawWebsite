@@ -9,7 +9,26 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [greeting, setGreeting] = useState("Hello");
-  const [tests, setTests] = useState<any[]>([]);
+  const [tests, setTests] = useState<Array<{
+    id: string;
+    title: string;
+    description?: string;
+    category: string;
+    difficulty?: string;
+    totalQuestions: number;
+    timeLimit?: number;
+    bestScore?: number | null;
+    createdAt: string;
+  }>>([]);
+  const [bareActs, setBareActs] = useState<Array<{
+    id: string;
+    title: string;
+    description?: string;
+    category: string;
+    slug: string;
+    order: number;
+    createdAt: string;
+  }>>([]);
   
   const isLoggedIn = !!session?.user;
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User";
@@ -26,7 +45,7 @@ export default function HomePage() {
       } else if (currentHour >= 17 && currentHour < 22) {
         setGreeting("Good evening");
       } else {
-        setGreeting("Good night");
+        setGreeting("Welcome back");
       }
     };
 
@@ -40,34 +59,33 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch tests and notes data for all users
+  // Fetch tests and bareacts data for all users (public API)
   useEffect(() => {
-    const fetchTests = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/tests');
-        if (response.ok) {
-          const result = await response.json();
-          setTests(result.data?.slice(0, 6) || []); // Show first 6 tests
+        // Fetch tests
+        const testsResponse = await fetch('/api/tests/public');
+        if (testsResponse.ok) {
+          const testsResult = await testsResponse.json();
+          setTests(testsResult.data?.slice(0, 6) || []); // Show first 6 tests
+        }
+
+        // Fetch bareacts
+        const bareActsResponse = await fetch('/api/bareacts');
+        if (bareActsResponse.ok) {
+          const bareActsResult = await bareActsResponse.json();
+          setBareActs(bareActsResult.data?.slice(0, 6) || []); // Show first 6 bareacts
         }
       } catch (error) {
-        console.error('Failed to fetch tests:', error);
+        console.error('Failed to fetch data:', error);
       }
     };
 
-    fetchTests();
+    fetchData();
   }, []);
 
-  // Mock data for logged-in users
-  const recentNotes = [
-    { id: 1, title: "Constitutional Law Basics", subject: "Constitutional Law", date: "2024-01-15" },
-    { id: 2, title: "Contract Formation", subject: "Contract Law", date: "2024-01-12" },
-    { id: 3, title: "Criminal Procedure", subject: "Criminal Law", date: "2024-01-10" }
-  ];
-
   const stats = {
-    notesCompleted: 45,
-    studyStreak: 7,
-    testsCompleted: tests.length || 0
+    testsAvailable: tests.length || 0
   };
 
   if (status === "loading") {
@@ -96,32 +114,59 @@ export default function HomePage() {
             {isLoggedIn ? (
               <div>
                 <h2 className="text-2xl md:text-3xl font-semibold mb-4">
-                  {greeting}, {userName}!
+                  {greeting}, {userName}! 🙏
                 </h2>
-                <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
-                  Continue your legal education journey with our comprehensive study materials and resources.
+                <p className="text-xl text-gray-200 mb-8 max-w-3xl mx-auto">
+                  Ready to continue your legal education journey? Access your personalized dashboard with study materials, progress tracking, and practice tests tailored just for you.
                 </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link
+                    href="/notes"
+                    className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Continue Reading
+                  </Link>
+                  <Link
+                    href="/tests"
+                    className="px-8 py-4 bg-transparent border-2 border-white hover:bg-white hover:text-slate-800 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Take Practice Test
+                  </Link>
+                </div>
               </div>
             ) : (
               <div>
                 <h2 className="text-2xl md:text-4xl font-semibold mb-4">
-                  Empowering Legal Excellence
+                  Master Law with Simple, Clear Explanations
                 </h2>
-                <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
-                  Comprehensive study materials for law students and professional legal services for clients.
+                <p className="text-xl text-gray-200 mb-8 max-w-3xl mx-auto">
+                  Transform complex legal concepts into easy-to-understand language. Access comprehensive study materials, practice tests, and educational resources designed for law students and legal professionals.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
                     href="/signup"
-                    className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+                    className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
                   >
-                    Start Learning Today
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Start Learning Free
                   </Link>
                   <Link
-                    href="/contact"
-                    className="px-8 py-4 bg-transparent border-2 border-white hover:bg-white hover:text-slate-800 text-white font-semibold rounded-lg transition-all duration-300"
+                    href="/notes"
+                    className="px-8 py-4 bg-transparent border-2 border-white hover:bg-white hover:text-slate-800 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center"
                   >
-                    Legal Services
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Browse Notes
                   </Link>
                 </div>
               </div>
@@ -137,45 +182,31 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border border-green-200">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-2xl font-bold text-slate-800">{stats.notesCompleted}</p>
-                    <p className="text-gray-600">Notes Completed</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div className="ml-4">
-                    <p className="text-2xl font-bold text-slate-800">{stats.testsCompleted}</p>
-                    <p className="text-gray-600">Tests Available</p>
+                    <p className="text-2xl font-bold text-green-800">{stats.testsAvailable}</p>
+                    <p className="text-green-600 font-medium">Tests Available</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border border-blue-200">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                  <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
                   <div className="ml-4">
-                    <p className="text-2xl font-bold text-slate-800">{stats.studyStreak}</p>
-                    <p className="text-gray-600">Day Streak</p>
+                    <p className="text-2xl font-bold text-blue-800">Notes</p>
+                    <p className="text-blue-600 font-medium">Study Materials</p>
                   </div>
                 </div>
               </div>
@@ -228,71 +259,77 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Recent Notes */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-slate-800">Continue Reading</h3>
-                  <Link href="/notes" className="text-amber-600 hover:text-amber-700 text-sm font-medium">
-                    View All →
-                  </Link>
-                </div>
-                <div className="space-y-3">
-                  {recentNotes.map((note) => (
-                    <div key={note.id} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                      <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
-                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-slate-800">{note.title}</h4>
-                        <p className="text-sm text-gray-600">{note.subject} • {note.date}</p>
-                      </div>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  ))}
-                </div>
+            {/* Available Tests */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-slate-800">Practice Tests</h3>
+                <Link href="/tests" className="text-green-600 hover:text-green-700 text-sm font-medium">
+                  View All →
+                </Link>
               </div>
-
-              {/* Available Tests */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-slate-800">Practice Tests</h3>
-                  <Link href="/tests" className="text-green-600 hover:text-green-700 text-sm font-medium">
-                    View All →
-                  </Link>
-                </div>
-                <div className="space-y-3">
-                  {tests.length > 0 ? tests.slice(0, 3).map((test) => (
-                    <Link key={test.id} href={isLoggedIn ? `/tests/${test.id}` : '/login'} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-slate-800">{test.title}</h4>
-                        <p className="text-sm text-gray-600">
-                          {test.category} • {test.totalQuestions} questions
-                          {test.difficulty && ` • ${test.difficulty}`}
-                        </p>
-                        {test.bestScore !== null && (
-                          <p className="text-xs text-green-600 font-medium mt-1">Best Score: {test.bestScore}%</p>
-                        )}
-                      </div>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <div className="space-y-3">
+                {tests.length > 0 ? tests.slice(0, 3).map((test) => (
+                  <Link key={test.id} href={`/tests/${test.id}`} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                    </Link>
-                  )) : (
-                    <div className="text-center py-4 text-gray-500">
-                      <p>No tests available at the moment.</p>
                     </div>
-                  )}
-                </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-slate-800">{test.title}</h4>
+                      <p className="text-sm text-gray-600">
+                        {test.category} • {test.totalQuestions} questions
+                        {test.difficulty && ` • ${test.difficulty}`}
+                      </p>
+                      {test.bestScore !== null && (
+                        <p className="text-xs text-green-600 font-medium mt-1">Best Score: {test.bestScore}%</p>
+                      )}
+                    </div>
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                )) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <p>No tests available at the moment.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Available BareActs */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-slate-800">Available BareActs</h3>
+                {bareActs.length > 3 && (
+                  <span className="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                    View All →
+                  </span>
+                )}
+              </div>
+              <div className="space-y-3">
+                {bareActs.length > 0 ? bareActs.slice(0, 3).map((act) => (
+                  <div key={act.id} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-slate-800">{act.title}</h4>
+                      <p className="text-sm text-gray-600">
+                        {act.category} • {act.description}
+                      </p>
+                    </div>
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                )) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <p>No BareActs available at the moment.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -307,46 +344,133 @@ export default function HomePage() {
                 <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
                   Why Choose {FIRM_NAME}?
                 </h2>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                  Comprehensive legal education resources and professional services tailored for your success.
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  The most comprehensive legal education platform designed for students, professionals, and anyone seeking to understand law in simple terms.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 text-center hover:shadow-xl transition-all duration-300">
+                  <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-800 mb-4">Comprehensive Study Materials</h3>
-                  <p className="text-gray-600">
-                    Access detailed notes, case studies, and practice questions covering all major legal subjects.
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3">Simplified Notes</h3>
+                  <p className="text-gray-600 text-sm">
+                    Complex legal concepts explained in simple, understandable language with real examples.
                   </p>
                 </div>
 
-                <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 text-center hover:shadow-xl transition-all duration-300">
+                  <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-800 mb-4">Interactive Learning</h3>
-                  <p className="text-gray-600">
-                    Test your knowledge with interactive quizzes and track your progress with detailed analytics.
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3">Practice Tests</h3>
+                  <p className="text-gray-600 text-sm">
+                    Test your knowledge with comprehensive quizzes and track your learning progress.
                   </p>
                 </div>
 
-                <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center">
-                  <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z" />
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 text-center hover:shadow-xl transition-all duration-300">
+                  <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-800 mb-4">Professional Legal Services</h3>
-                  <p className="text-gray-600">
-                    Expert legal consultation and services for individuals and businesses across various practice areas.
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3">Progress Tracking</h3>
+                  <p className="text-gray-600 text-sm">
+                    Monitor your study progress with detailed analytics and personalized insights.
                   </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 text-center hover:shadow-xl transition-all duration-300">
+                  <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3">100% Free</h3>
+                  <p className="text-gray-600 text-sm">
+                    All educational content and features are completely free for students and learners.
+                  </p>
+                </div>
+              </div>
+
+              {/* Key Benefits Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-800 mb-6">Everything You Need to Excel in Law</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">Constitutional Law & Fundamental Rights</h4>
+                        <p className="text-gray-600 text-sm">Comprehensive coverage of constitutional principles and civil liberties</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">Criminal Law & Procedure</h4>
+                        <p className="text-gray-600 text-sm">Criminal offenses, procedures, and legal principles explained clearly</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">Contract Law & Business Law</h4>
+                        <p className="text-gray-600 text-sm">Contract formation, business regulations, and commercial law</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">Legal Research & Writing</h4>
+                        <p className="text-gray-600 text-sm">Essential skills for legal analysis and professional writing</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative">
+                  <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl p-8 text-center">
+                    <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                      <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-2xl font-bold text-slate-800 mb-4">Join Our Community</h4>
+                    <p className="text-gray-600 mb-6">Learning law has never been this simple and accessible. Start your journey today!</p>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-blue-600">Notes</div>
+                        <div className="text-sm text-gray-600">Study Materials</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-green-600">Tests</div>
+                        <div className="text-sm text-gray-600">Practice Available</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -357,10 +481,10 @@ export default function HomePage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-                  Latest Practice Tests
+                  ✨ Featured Practice Tests
                 </h2>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                  Test your knowledge with our comprehensive practice tests covering all major legal subjects. Login to take tests.
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Challenge yourself with our expertly crafted practice tests. Each test is designed to reinforce key concepts and prepare you for real-world applications. <span className="text-amber-600 font-semibold">Create a free account to start testing your knowledge!</span>
                 </p>
               </div>
 
@@ -421,27 +545,117 @@ export default function HomePage() {
             </div>
           </section>
 
+          {/* BareActs Section for Non-logged Users */}
+          <section className="py-16 bg-slate-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+                  📚 Essential Legal Documents (BareActs)
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Access key legal documents and acts that form the foundation of legal study. Essential references for students and professionals.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                {bareActs.length > 0 ? bareActs.slice(0, 6).map((act) => (
+                  <div key={act.id} className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                        act.category === 'AIBE' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {act.category}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{act.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{act.description || 'Essential legal document for reference and study.'}</p>
+                    <div className="space-y-2 text-sm text-gray-500 mb-4">
+                      <div className="flex justify-between">
+                        <span>Category:</span>
+                        <span className="font-medium">{act.category}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Added:</span>
+                        <span className="font-medium">{new Date(act.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <Link
+                      href="/login"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors inline-block text-center"
+                    >
+                      Login to Access
+                    </Link>
+                  </div>
+                )) : (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-gray-500 text-lg">No BareActs available at the moment.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
 
           {/* CTA Section */}
-          <section className="bg-slate-800 text-white py-16">
-            <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Start Your Legal Journey?</h2>
-              <p className="text-xl text-gray-300 mb-8">
-                Join thousands of law students and legal professionals who trust {FIRM_NAME} for their education and legal needs.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href="/signup"
-                  className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
-                >
-                  Create Free Account
-                </Link>
-                <Link
-                  href="/login"
-                  className="px-8 py-4 bg-transparent border-2 border-amber-500 hover:bg-amber-500 text-amber-500 hover:text-white font-semibold rounded-lg transition-all duration-300"
-                >
-                  Login to Continue
-                </Link>
+          <section className="bg-gradient-to-r from-slate-800 via-slate-700 to-gray-800 text-white py-16 relative overflow-hidden">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="relative z-10 max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 shadow-2xl">
+                <h2 className="text-3xl md:text-5xl font-bold mb-6">🚀 Start Your Legal Journey Today!</h2>
+                <p className="text-xl text-gray-200 mb-8 max-w-3xl mx-auto">
+                  Master law with simple explanations. Get instant access to study materials, practice tests, and progress tracking - completely free!
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-200">Simplified Legal Notes</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-200">Practice Tests</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-200">Progress Tracking</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link
+                    href="/signup"
+                    className="px-10 py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center text-lg"
+                  >
+                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    Get Started Free
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="px-10 py-4 bg-transparent border-2 border-amber-400 hover:bg-amber-400 text-amber-400 hover:text-slate-800 font-semibold rounded-lg transition-all duration-300 text-lg"
+                  >
+                    Already have an account? Login
+                  </Link>
+                </div>
+
+                <p className="text-sm text-gray-300 mt-6">⚡ Takes less than 30 seconds • No credit card required • Instant access</p>
               </div>
             </div>
           </section>

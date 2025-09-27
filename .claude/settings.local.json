@@ -13,7 +13,10 @@
       "Bash(set -a)",
       "Bash(source:*)",
       "Bash(set +a)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run lint:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

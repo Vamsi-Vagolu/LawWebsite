@@ -26,6 +26,7 @@ export default function TestSeriesPage() {
       // Stop loading if not authenticated
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status]);
 
   const fetchTests = async () => {
@@ -108,13 +109,13 @@ export default function TestSeriesPage() {
     );
   }
 
-  if (!session) {
+  if (status !== "loading" && !session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center px-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center border border-gray-200">
-          <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-6">
             <svg
-              className="w-8 h-8 text-blue-600"
+              className="w-8 h-8 text-amber-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -132,7 +133,7 @@ export default function TestSeriesPage() {
           </h2>
           <p className="text-gray-600 mb-6">Please login to view practice tests.</p>
           <button
-            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg mb-4"
+            className="w-full px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg mb-4"
             onClick={() => {
               router.push("/login?callbackUrl=/tests");
             }}
@@ -142,7 +143,7 @@ export default function TestSeriesPage() {
           <div className="text-sm text-gray-500">
             Don&apos;t have an account?{" "}
             <button
-              className="text-blue-600 hover:text-blue-700 font-medium underline"
+              className="text-amber-600 hover:text-amber-700 font-medium underline"
               onClick={() => {
                 router.push("/signup?callbackUrl=/tests");
               }}
